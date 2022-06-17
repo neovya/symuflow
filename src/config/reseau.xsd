@@ -1532,6 +1532,11 @@ Si ce code n'est pas défini (ainsi que le code de restitution - attribut EPSGou
         <xsd:documentation>Permet d'activer où non la gestion globale des conflits de traversée au niveau des briques de connexion et de la traversée des voies interdites </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="duree_stop" type="typeFloatPositif" use="optional" default="0">
+      <xsd:annotation>
+        <xsd:documentation>Durée d'arrêt en secondes aux entrées des carrefours à feux dont l'attribut "priorite" vaut "stop"</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
     <xsd:attribute default="1" name="meso_nb_vehicules_chgt_voie" type="xsd:nonNegativeInteger">
       <xsd:annotation>
         <xsd:documentation>En mode mésoscopique, nombre de véhicules non prioritaires à considérer par voie pour le passage d'un noeud, si le mouvement correspondant n'est pas gêné par le mouvement des véhicules arrivés avant (cas d'un feu vert pour tourner à droite avec une voie réservée à ce mouvement par exemple). Le nombre de véhicules considérés est la valeur de ce paramètre multipliée par le nombre de voies - 1.</xsd:documentation>
@@ -2716,6 +2721,12 @@ Par défaut, le z-level est appliqué sur tout le tronçon</xsd:documentation>
                           </xsd:enumeration>
                         </xsd:restriction>
                       </xsd:simpleType>
+                    </xsd:attribute>
+                    <xsd:attribute name="duree_stop" type="typeFloatPositif"
+                      use="optional">
+                      <xsd:annotation>
+                        <xsd:documentation>Durée d'arrêt en secondes aux entrées des carrefours à feux dont l'attribut "priorite" vaut "stop" à utiliser à la place du paramètre global TRAFIC/duree_stop</xsd:documentation>
+                      </xsd:annotation>
                     </xsd:attribute>
                   </xsd:complexType>
                 </xsd:element>

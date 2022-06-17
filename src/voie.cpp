@@ -52,6 +52,9 @@ using namespace std;
 {
     m_pVoieGauche = NULL;
     m_pVoieDroite = NULL;
+
+    m_bHasStop = false;
+    m_dbStopDuration = 0;
 }
 
 //================================================================
@@ -71,6 +74,9 @@ using namespace std;
 
     m_pVoieGauche = NULL;
     m_pVoieDroite = NULL;
+
+    m_bHasStop = false;
+    m_dbStopDuration = 0;
 
     m_dbLargeur = dbLargeur;
 }
@@ -1127,6 +1133,8 @@ void Voie::serialize(Archive& ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_bIsRabattementDevantVehiculeGuideInterdit);
 
     ar & BOOST_SERIALIZATION_NVP(m_LstLignesFeux);
+    ar & BOOST_SERIALIZATION_NVP(m_bHasStop);
+    ar & BOOST_SERIALIZATION_NVP(m_dbStopDuration);
 }
 
 template void VoieMacro::serialize(boost::archive::xml_woarchive & ar, const unsigned int version);

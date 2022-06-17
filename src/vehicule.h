@@ -326,6 +326,10 @@ protected:
                                         // ex: bus à un arrêt déporté
 
     bool        m_bArretAuFeu;          // Indique si le véhicule est arrêté car premier véhicule d'un tronçon avec connexion aval avec feu rouge
+    bool        m_bArretAuStop;         // Equivalent de m_bArretAuFeu pour les panneaux stops (à la différence qu'on n'ignore pas les followers arrêtés aux stops pour la gestion des convergents)
+
+    VoieMicro*  m_pStopSignLane;        // Voie au bout de laquelle se trouve un stop à respecter par le véhicule
+    double      m_dbStopSignStartTime;  // Instant précis de l'arrêt du véhicule au panneau stop en cours de gestion
 
     // Variables liées au changement de voie
     bool        m_bChgtVoie;            // Indique si le véhicule a changé de voie pour le pas de temps considéré
@@ -497,6 +501,9 @@ public:
     void        CalculTraficEx      (double dbInstant = 0);
     bool        CalculTraficFeux    (double dbInstant, double dbTimeStep, double dbStartPosOfLane, double dbStartPosOnLane, double dbEndPosOnLane, double dbGoalDistance,
                                         VoieMicro * pLane, size_t iLane, const std::vector<VoieMicro*> & lstLanes, double &dbMinimizedGoalDistance, bool &bArretAuFeu);
+
+    bool        CalculTraficStopSign(double dbInstant, double dbTimeStep, double dbStartPosOfLane, double dbStartPosOnLane, double dbEndPosOnLane, double dbGoalDistance,
+                                        VoieMicro * pLane, double dbLaneLength, double &dbMinimizedGoalDistance, bool &bArretAuStop, VoieMicro* &pStopSignLane);
 
     void        FinCalculTrafic     (double dbInst);
 

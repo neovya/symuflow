@@ -210,6 +210,10 @@ Vehicule::Vehicule
     m_bJorgeAgressif = false;
     m_bJorgeShy = false;
     m_bArretAuFeu = false;
+    m_bArretAuStop = false;
+
+    m_pStopSignLane = NULL;
+    m_dbStopSignStartTime = -1;
 
     m_nID = -999;
 
@@ -308,6 +312,9 @@ Vehicule::Vehicule
 
     m_bOutside = other.m_bOutside;
     m_bArretAuFeu = other.m_bArretAuFeu;
+    m_bArretAuStop = other.m_bArretAuStop;
+    m_pStopSignLane = other.m_pStopSignLane;
+    m_dbStopSignStartTime = other.m_dbStopSignStartTime;
     m_bChgtVoie = other.m_bChgtVoie;
     m_bVoiesOK = other.m_bVoiesOK;
     m_dbHeureEntree = other.m_dbHeureEntree;
@@ -461,6 +468,10 @@ Vehicule::Vehicule
     m_bChgtVoie = false;
     m_dbInstantCreation = 0;
     m_bArretAuFeu = false;
+    m_bArretAuStop = false;
+
+    m_pStopSignLane = NULL;
+    m_dbStopSignStartTime = -1;
 
     m_pNextVoie = NULL;
 
@@ -1281,6 +1292,7 @@ void Vehicule::CalculTraficEx
 
     // Impact des éléments du réseau traversés sur la position calculée par la loi de poursuite
     m_bArretAuFeu = false;
+    m_bArretAuStop = false;
     double dbStartPosition = GetPos(1) + m_dbCreationPosition;
     double dbGoalDistance = m_pCarFollowing->GetComputedTravelledDistance();
     double dbMinimizedGoalDistance = dbGoalDistance+1;
@@ -1361,8 +1373,8 @@ void Vehicule::CalculTraficEx
         // d'un tronçon, mais avec une position très légèrement supérieure ce qui n'est pas cohérent).
         if((bIsLastLane && !bIsNextConnectionExit && endPositionOnLane > laneLength)
             // Correction d'un problème de précision numérique identique à celui ci-dessus mais 
-            // qui provoque le passage aux feux rouges (le test ci-dessus ne couvre pas ce cas à cause du bIsLastLane
-            || (m_bArretAuFeu && endPositionOnLane > laneLength && endPositionOnLane < laneLength + 0.00001))
+            // qui provoque le passage aux feux rouges ou stops (le test ci-dessus ne couvre pas ce cas à cause du bIsLastLane
+            || ((m_bArretAuFeu || m_bArretAuStop) && endPositionOnLane > laneLength && endPositionOnLane < laneLength + 0.00001))
         {
             endPositionOnLane = laneLength;
         }
@@ -1642,14 +1654,17 @@ bool Vehicule::CheckNetworkInfluence(double dbInstant, double dbTimeStep, VoieMi
         }
     }
 
-    // 4 - Cas de l'influence des feux tricolores
-    // **************************************************
+    // 4 - Cas de l'influence des feux tricolores et stops
+    // ***************************************************
     double dbMinimizedGoalDistanceForLights = dbGoalDistance+1;
     bool bArretAuFeu = false;
-    if(CalculTraficFeux(dbInstant, dbTimeStep, travelledDistance, startPos, endPos, dbGoalDistance, pLane, iLane, lstLanes, dbMinimizedGoalDistanceForLights, bArretAuFeu))
+    bool bArretAuStop = false;
+    VoieMicro * pStopSignLane = NULL;
+    if(CalculTraficFeux(dbInstant, dbTimeStep, travelledDistance, startPos, endPos, dbGoalDistance, pLane, iLane, lstLanes, dbMinimizedGoalDistanceForLights, bArretAuFeu) ||
+       CalculTraficStopSign(dbInstant, dbTimeStep, travelledDistance, startPos, endPos, dbGoalDistance, pLane, laneLength, dbMinimizedGoalDistanceForLights, bArretAuStop, pStopSignLane))
     {
-        // gestion de la décélération au feu rouge le cas échéant
-        if(bArretAuFeu)
+        // gestion de la décélération au feu rouge ou au stop le cas échéant
+        if(bArretAuFeu || bArretAuStop)
         {
             double dbMinimizedDeceleratedGoalDistanceForLights = CalculDeceleration(dbTimeStep, dbMinimizedGoalDistanceForLights);
             dbMinimizedGoalDistanceForLights = std::min<double>(dbMinimizedGoalDistanceForLights, dbMinimizedDeceleratedGoalDistanceForLights);
@@ -1664,6 +1679,16 @@ bool Vehicule::CheckNetworkInfluence(double dbInstant, double dbTimeStep, VoieMi
                 {
                     m_bRegimeFluide = false;
                     m_bArretAuFeu = true;
+                }
+                if(bArretAuStop)
+                {
+                    m_bRegimeFluide = false;
+                    m_bArretAuStop = true;
+                    if (pStopSignLane && m_pStopSignLane != pStopSignLane)
+                    {
+                        m_pStopSignLane = pStopSignLane;
+                        m_dbStopSignStartTime = -1; 
+                    }
                 }
             }
         }
@@ -1906,6 +1931,63 @@ bool Vehicule::CalculTraficFeux
         }
     }
 
+    return bHasInfluence;
+}
+
+//================================================================
+bool Vehicule::CalculTraficStopSign
+//----------------------------------------------------------------
+// Fonction  :  traite les arrêts aux lignes stop
+// Version du:  17/06/2022
+// Historique:  17/06/2022 (O.Tonck - Neovya)
+//               version initiale
+//================================================================
+(
+    double dbInstant,
+    double dbTimeStep,
+    double dbStartPosOfLane,
+    double dbStartPosOnLane,
+    double dbEndPosOnLane,
+    double dbGoalDistance,
+    VoieMicro * pLane,
+    double dbLaneLength,
+    double &dbMinimizedGoalDistance,
+    bool   &bArretAuStop,
+    VoieMicro* &pStopSignLane
+)
+{
+    bool bHasInfluence = false;
+    if (pLane->HasStop() && pLane->GetStopDuration() > 0)
+    {
+        if (this->m_dbStopSignStartTime != -1 && pLane == m_pStopSignLane)
+        {
+            // the full stop of the vehicle has already been detected. We have to tell when the vehicle can start again
+            double dbRemainingStopStimeDuringTimeStep = pLane->GetStopDuration() - ((dbInstant - dbTimeStep) - this->m_dbStopSignStartTime);
+            if (dbRemainingStopStimeDuringTimeStep >= dbTimeStep)
+            {
+                // the vehicle stays at the stop for the full timestep duration
+                double dbDstLoc = (dbStartPosOfLane-dbStartPosOnLane) + dbLaneLength;
+                dbMinimizedGoalDistance = dbDstLoc;
+                bArretAuStop = true;
+                bHasInfluence = true;   
+            }
+            else if(dbRemainingStopStimeDuringTimeStep > 0)
+            {
+                // the vehicle can start again before the end of the timestep
+                dbMinimizedGoalDistance = dbGoalDistance * (dbRemainingStopStimeDuringTimeStep / dbTimeStep);
+                bHasInfluence = true;
+            }
+        }
+        else
+        {
+            // the full stop of the vehicle has not been detected yet. the vehicle goal is the stop line.
+            pStopSignLane = pLane;
+            double dbDstLoc = (dbStartPosOfLane-dbStartPosOnLane) + dbLaneLength;
+            dbMinimizedGoalDistance = dbDstLoc;
+            bArretAuStop = true;
+            bHasInfluence = true;
+        }
+    }
     return bHasInfluence;
 }
 
@@ -4285,6 +4367,28 @@ void Vehicule::FinCalculTrafic
         }
     }
 
+    // Stop at stop signs management
+    if (m_pStopSignLane && (m_pVoie[0] == m_pStopSignLane) && m_dbStopSignStartTime == -1 &&
+        m_pPos[0] > m_pStopSignLane->GetLength() - 0.5)
+    {
+        // adjust the time when the vehicle reached the 0.5m end lane area :
+        double dbDstParcourueEx = GetDstParcourueEx();
+        m_dbStopSignStartTime = dbInst;
+        if (dbDstParcourueEx > 0)
+        {
+            m_dbStopSignStartTime -= m_pReseau->GetTimeStep() * (m_pPos[0] - (m_pStopSignLane->GetLength() - 0.5)) / dbDstParcourueEx;
+        }
+    }
+    else if(m_dbStopSignStartTime != -1) 
+    {
+        // a vehicle stop has been detected and still in progress but the vehicle is not on the stop lane anymore : reset the stop procedure
+        if (m_pStopSignLane != m_pVoie[0]) 
+        {
+            m_pStopSignLane = NULL;
+            m_dbStopSignStartTime = -1;
+        }
+    }
+
     // Gestion des phases de décélération
     if(!m_bDeceleration)
     {
@@ -4908,6 +5012,7 @@ void Vehicule::CopyTo( boost::shared_ptr<Vehicule> pVehDst )
     pVehDst->m_bOutside = m_bOutside;  
 
     pVehDst->m_bArretAuFeu = m_bArretAuFeu;
+    pVehDst->m_bArretAuStop = m_bArretAuStop;
 
     pVehDst->m_dbInstantCreation = m_dbInstantCreation;
 
@@ -5639,6 +5744,7 @@ void Vehicule::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_dbResTirFollInt);
     ar & BOOST_SERIALIZATION_NVP(m_bOutside);
     ar & BOOST_SERIALIZATION_NVP(m_bArretAuFeu);
+    ar & BOOST_SERIALIZATION_NVP(m_bArretAuStop);
 
     ar & BOOST_SERIALIZATION_NVP(m_bChgtVoie);
 

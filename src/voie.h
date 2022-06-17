@@ -102,6 +102,8 @@ protected:
     std::map<RegulationBrique*, bool>       m_bIsRabattementDevantVehiculeGuideInterdit;    // Permet d'interdire le changement de voie vers cette voie si un véhicule guidé est en amont
 
     std::vector<LigneDeFeu>                 m_LstLignesFeux;    // Liste des lignes de feux se trouvant sur la voie
+    bool                                    m_bHasStop;         // true si la voie se termine pas un stop en entrée de CAF
+    double                                  m_dbStopDuration;   // durée de l'arrêt au stop en fin de voie le cas échéant
 
 public:
         // Méthodes virtuelles pures
@@ -129,6 +131,10 @@ public:
 		VoieIndex GetUnifiedID() { return VoieIndex(m_pParent->m_strLabel, GetNum()); }
 
         std::vector<LigneDeFeu> & GetLignesFeux() {return m_LstLignesFeux;}
+
+        void            SetHasStop(double dbStopDuration) { m_bHasStop = true; m_dbStopDuration = dbStopDuration; }
+        bool            HasStop() { return m_bHasStop; }
+        double          GetStopDuration() { return m_dbStopDuration; }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation

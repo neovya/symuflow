@@ -319,6 +319,7 @@ private:
         bool    m_bChgtVoie;            // Indique si la simulation gère le changement de voie      
         bool    m_bDepassement;         // Indique si la simulation gère le dépassement sur tronçon opposé
         bool    m_bTraversees;          // Indique si la simulation gère les traversées (briques et voies interdites)
+        double  m_dbStopDuration;       // Durée des stops en secondes
 		double  m_dbFAlphaMandatory;		// Valeur de alpha pour le changement de voie 'mandatory'
 		char	m_cChgtVoieMandatoryProba;	// Type de probabilité dans le cas d'un changement de voie 'mandatory' (cf. Vehicule::CalculChangementDeVoie)
 		char	m_cChgtVoieMandatoryMode;	// Mode de gestion des changements de voie 'mandatory' ('S': synchrone, 'A' : asynchrone)
@@ -1011,6 +1012,7 @@ public:
         double                          GetNonPriorityPenaltyFactor() {return m_dbNonPriorityPenaltyFactor;}
 
         bool                            GetSimulationTraversees() {return m_bTraversees;}
+        double                          GetStopDuration() {return m_dbStopDuration;}
 
         bool                            IsSymuMasterMode() { return m_bSymuMasterMode; }
         void                            SetSymuMasterMode() { m_bSymuMasterMode = true; }

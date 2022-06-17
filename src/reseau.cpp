@@ -301,6 +301,7 @@ void Reseau::Initialize()
 
     m_bDepassement = true;
     m_bTraversees = true;
+    m_dbStopDuration = 0.0;
 
     m_bRelancerCalculRepartiteur = false;
 
@@ -4951,6 +4952,9 @@ const std::string & ssID
 
     // Traversées
     GetXmlAttributeValue(pXMLNodeTrafic, "traversees", m_bTraversees, &loadingLogger);
+
+    // Durée des stops 
+    GetXmlAttributeValue(pXMLNodeTrafic, "duree_stop", m_dbStopDuration, &loadingLogger);
 
     // Ordre de traitement des voies dans le cas d'un changement de voie discrétionnaire
     GetXmlAttributeValue(pXMLNodeTrafic, "chgtvoie_discr_ordre", sVar, &loadingLogger);
@@ -16919,6 +16923,8 @@ void Reseau::serialize(Archive & ar, const unsigned int version)
 
         ar & BOOST_SERIALIZATION_NVP(m_bDepassement);
         ar & BOOST_SERIALIZATION_NVP(m_bTraversees);
+
+        ar & BOOST_SERIALIZATION_NVP(m_dbStopDuration);
 
         ar & BOOST_SERIALIZATION_NVP(m_nOrdreChgtVoieDiscr);
 
