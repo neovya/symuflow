@@ -1376,7 +1376,7 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
     double dbAlpha;
     Point   pt11, pt12, pt21, pt22, ptInt;
 
-    std::map<double, size_t> mapPointIndexByLengthForLink, mapPointIndexByLengthForLane;
+    std::map<double, std::pair<size_t,size_t> > mapPointIndexByLengthForLink;
     bool bFillMapPointIndexByLengthForLink = pVoie != nullptr && pVoie->GetParent()->GetMapPointIndexByLength().empty();
 
     // on filtre les points identiques
@@ -1405,14 +1405,13 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
 
     if( lstPoints.size() > 2)
     {
-        double dbCumLengthForLane = 0;
         double dbCumLengthForLink = 0;
         for(int j=1; j<(int)lstPoints.size()-1; j++)
         {                        
             // Première droite
             dbAlpha  = atan2( lstPoints[j].dbY - lstPoints[j-1].dbY, lstPoints[j].dbX - lstPoints[j-1].dbX );
 
-            double dbPrevSegmentLength = sqrt((lstPoints[j].dbX - lstPoints[j-1].dbX)*(lstPoints[j].dbX - lstPoints[j-1].dbX) + (lstPoints[j].dbY - lstPoints[j-1].dbY)*(lstPoints[j].dbY - lstPoints[j-1].dbY) + (lstPoints[j].dbZ - lstPoints[j-1].dbZ)*(lstPoints[j].dbZ - lstPoints[j-1].dbZ));
+            double dbPrevSegmentLength = lstPoints[j].DistanceTo(lstPoints[j-1]);
 
             if( dbOffset > (dbTotalWidth/2.) )
             {
@@ -1463,33 +1462,25 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
 
             ptInt.dbZ = lstPoints[j].dbZ;
 
-            dbCumLengthForLink += dbPrevSegmentLength;
-            dbCumLengthForLane += sqrt((pt11.dbX - ptInt.dbX)*(pt11.dbX - ptInt.dbX) + (pt11.dbY - ptInt.dbY)*(pt11.dbY - ptInt.dbY) + + (pt11.dbZ - ptInt.dbZ)*(pt11.dbZ - ptInt.dbZ));
-
             if( j==1)
             {
                 pt11.dbZ = lstPoints[0].dbZ;
                 result.push_back(pt11);
 
-                if (pVoie)
+                if (bFillMapPointIndexByLengthForLink)
                 {
-                    if (bFillMapPointIndexByLengthForLink)
-                    {
-                        mapPointIndexByLengthForLink[0] = 0;
-                    }
-                    mapPointIndexByLengthForLane[0] = 0;
+                    mapPointIndexByLengthForLink[0] = std::make_pair(mapLinkPtIndexes[0], 0);
                 }
             }
 
+            dbCumLengthForLink += dbPrevSegmentLength;
+
             result.push_back(ptInt);
 
-            if (pVoie)
+
+            if (bFillMapPointIndexByLengthForLink)
             {
-                if (bFillMapPointIndexByLengthForLink)
-                {
-                    mapPointIndexByLengthForLink[dbCumLengthForLink] = mapLinkPtIndexes[j];
-                }
-                mapPointIndexByLengthForLane[dbCumLengthForLane] = j;
+                mapPointIndexByLengthForLink[dbCumLengthForLink] = std::make_pair(mapLinkPtIndexes[j], j);
             }
 
             if( j+1==(int)lstPoints.size()-1)
@@ -1497,18 +1488,12 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
                 pt22.dbZ = lstPoints[j+1].dbZ;
                 result.push_back(pt22);
 
-                double dbNextSegmentLength = sqrt((lstPoints[j+1].dbX - lstPoints[j].dbX)*(lstPoints[j+1].dbX - lstPoints[j].dbX) + (lstPoints[j+1].dbY - lstPoints[j].dbY)*(lstPoints[j+1].dbY - lstPoints[j].dbY) + (lstPoints[j+1].dbZ - lstPoints[j].dbZ)*(lstPoints[j+1].dbZ - lstPoints[j].dbZ));
+                double dbNextSegmentLength = lstPoints[j+1].DistanceTo(lstPoints[j]);
                 dbCumLengthForLink += dbNextSegmentLength;
 
-                dbCumLengthForLane += sqrt((pt22.dbX - ptInt.dbX)*(pt22.dbX - ptInt.dbX) + (pt22.dbY - ptInt.dbY)*(pt22.dbY - ptInt.dbY) + (pt22.dbZ - ptInt.dbZ)*(pt22.dbZ - ptInt.dbZ));
-
-                if (pVoie)
+                if (bFillMapPointIndexByLengthForLink)
                 {
-                    if (bFillMapPointIndexByLengthForLink)
-                    {
-                        mapPointIndexByLengthForLink[dbCumLengthForLink] = mapLinkPtIndexes[j+1];
-                    }
-                    mapPointIndexByLengthForLane[dbCumLengthForLane] = j+1;
+                    mapPointIndexByLengthForLink[dbCumLengthForLink] =  std::make_pair(mapLinkPtIndexes[j+1], j+1);
                 }
             }
         }
@@ -1542,16 +1527,10 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
         result.push_back(pt11);
         result.push_back(pt22);
 
-        if (pVoie)
+        if (bFillMapPointIndexByLengthForLink)
         {
-            if (bFillMapPointIndexByLengthForLink)
-            {
-                mapPointIndexByLengthForLink[0] = 0;
-                mapPointIndexByLengthForLink[sqrt((pt22.dbX - pt11.dbX)*(pt22.dbX - pt11.dbX) + (pt22.dbY - pt11.dbY)*(pt22.dbY - pt11.dbY) + (pt22.dbZ - pt11.dbZ)*(pt22.dbZ - pt11.dbZ))] = mapLinkPtIndexes[1];
-            }
-
-            mapPointIndexByLengthForLane[0] = 0;
-            mapPointIndexByLengthForLane[sqrt((pt22.dbX - pt11.dbX)*(pt22.dbX - pt11.dbX) + (pt22.dbY - pt11.dbY)*(pt22.dbY - pt11.dbY) + (pt22.dbZ - pt11.dbZ)*(pt22.dbZ - pt11.dbZ))] = 1;
+            mapPointIndexByLengthForLink[0] = std::make_pair(mapLinkPtIndexes[0], 0);
+            mapPointIndexByLengthForLink[pt22.DistanceTo(pt11)] = std::make_pair(mapLinkPtIndexes[1], 1);
         }
     }
     else if (lstPoints.size() == 1) // Un seul point !
@@ -1562,13 +1541,9 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
 
         result.push_back(lstPoints.front());
 
-        if (pVoie)
+        if (bFillMapPointIndexByLengthForLink)
         {
-            if (bFillMapPointIndexByLengthForLink)
-            {
-                mapPointIndexByLengthForLink[0] = 0;
-            }
-            mapPointIndexByLengthForLane[0] = 0;
+            mapPointIndexByLengthForLink[0] = std::make_pair(mapLinkPtIndexes[0], 0);
         }
     }
     else // 0 points : celà peut-il arriver ?
@@ -1576,13 +1551,9 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
         assert(false);
     }
 
-    if (pVoie)
+    if (bFillMapPointIndexByLengthForLink)
     {
-        pVoie->SetMapPointIndexByLength(mapPointIndexByLengthForLane);
-        if (bFillMapPointIndexByLengthForLink)
-        {
-            pVoie->GetParent()->SetMapPointIndexByLength(mapPointIndexByLengthForLink);
-        }
+        pVoie->GetParent()->SetMapPointIndexByLength(mapPointIndexByLengthForLink);
     }
 
     return result;
@@ -1612,35 +1583,27 @@ void CalculAbsCoords(Voie * pLane, double dbPos, bool bOutside, double & dbX, do
         dbPos = 0;
     }
     
-    const std::map<double, size_t> & mapPointIndexByLengthOnLink = pLane->GetParent()->GetMapPointIndexByLength();
-    const std::map<double, size_t> & mapPointIndexByLengthOnLane = pLane->GetMapPointIndexByLength();
+    const std::map<double, std::pair<size_t, size_t> > & mapPointIndexByLengthOnLink = pLane->GetParent()->GetMapPointIndexByLength();
 
     // get the segment index of the position on the parent link :
     size_t iSegmentStartPointOnLink = 0;
     double dbSegmentStartPos = 0;
     size_t iSegmentStartPointOnLane = 0;
-    double dbLaneStartPos = 0;
-    for (std::map<double, size_t>::const_iterator iter = mapPointIndexByLengthOnLink.begin(); iter != mapPointIndexByLengthOnLink.end(); ++iter)
+    std::map<double, std::pair<size_t, size_t> >::const_iterator iter = mapPointIndexByLengthOnLink.begin();
+    iter++;
+    for (; iter != mapPointIndexByLengthOnLink.end(); ++iter)
     {
-        std::map<double, size_t>::const_iterator iterNext = iter;
+        std::map<double, std::pair<size_t, size_t> >::const_iterator iterNext = iter;
         iterNext++;
-        if ((iterNext == mapPointIndexByLengthOnLink.end()) || (iterNext->first >= dbPos))
+        if ((iterNext == mapPointIndexByLengthOnLink.end()) || (iter->first >= dbPos))
         {
-            dbSegmentStartPos = iter->first;
+            std::map<double, std::pair<size_t, size_t> >::const_iterator iterPrev = iter;
+            iterPrev--;
+            dbSegmentStartPos = iterPrev->first;
+            iSegmentStartPointOnLink = iterPrev->second.first;
+            iSegmentStartPointOnLane = iterPrev->second.second;
             break;
         }
-        iSegmentStartPointOnLink++;
-    }
-    for (std::map<double, size_t>::const_iterator iter = mapPointIndexByLengthOnLane.begin(); iter != mapPointIndexByLengthOnLane.end(); ++iter)
-    {
-        std::map<double, size_t>::const_iterator iterNext = iter;
-        iterNext++;
-        if ((iterNext == mapPointIndexByLengthOnLane.end()) || (iterNext->first >= dbPos))
-        {
-            dbLaneStartPos = iter->first;
-            break;
-        }
-        iSegmentStartPointOnLane++;
     }
 
     Point startLinkPoint, startLanePoint, endLinkPoint, endLanePoint;
