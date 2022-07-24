@@ -579,7 +579,9 @@ void Troncon::serialize(Archive& ar, const unsigned int version)
 
     ar & BOOST_SERIALIZATION_NVP(m_LstTypesVehicule);
 
-    ar & BOOST_SERIALIZATION_NVP(m_mapTerrePleins);       
+    ar & BOOST_SERIALIZATION_NVP(m_mapTerrePleins);
+
+    ar & BOOST_SERIALIZATION_NVP(m_mapPointIndexByLength);
 }
 
 

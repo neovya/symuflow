@@ -110,6 +110,8 @@ protected:
 		std::deque<TypeVehicule*>       m_LstTypesVehicule;                     // Liste des types de véhicule pouvant emprunter le tronçon
 
         std::string m_strRoadLabel;         // Libellé de la route correspondante
+
+        std::map<double, size_t> m_mapPointIndexByLength; // correspondance entre la longueur atteinte par le tronçon et l'indice du point associé dans sa polyligne 
                 
 public:
         std::map<int, std::vector<TerrePlein>* > m_mapTerrePleins; // map des terre-pleins (liste de variations temporelles par voie)
@@ -237,6 +239,9 @@ public:
 
         void            SetRoadLabel(const std::string & strRoadLabel) { m_strRoadLabel = strRoadLabel;}
         std::string     GetRoadLabel() { return m_strRoadLabel;}
+
+        const std::map<double, size_t> & GetMapPointIndexByLength() const { return m_mapPointIndexByLength; }
+        void SetMapPointIndexByLength(const std::map<double, size_t> & mapPointIndexByLength) { m_mapPointIndexByLength = mapPointIndexByLength; }
 
 public:
 

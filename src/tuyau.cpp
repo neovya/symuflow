@@ -1425,8 +1425,10 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
         // Nom        
 		strTmp = m_strLabel + "V" + to_string(i+1);
 
+        pVoie->SetPropCom(m_pReseau, this, strTmp, m_strRevetement );
+
         // Calcul des coordonnées géométriques
-        deque<Point> lstPoints = GetLineString(dbLargCum);
+        deque<Point> lstPoints = GetLineString(dbLargCum, pVoie);
 
         pVoie->SetExtAmont(lstPoints.front().dbX, lstPoints.front().dbY, lstPoints.front().dbZ);
         pVoie->SetExtAval(lstPoints.back().dbX, lstPoints.back().dbY, lstPoints.back().dbZ);
@@ -1443,9 +1445,7 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
 
 		pas_espace = 1;//Alain
         if( m_nResolution == RESOTUYAU_MACRO )
-            pas_espace=GetLength()/m_nNbCell;
-
-        pVoie->SetPropCom(m_pReseau, this, strTmp, m_strRevetement );                                                                 
+            pas_espace=GetLength()/m_nNbCell;                                                          
 
         // Initialisation des vitesses max d'entrée et de sortie de la voie
         pVoie->SetVitMaxEntree(GetVitesseMax());
@@ -1490,7 +1490,8 @@ std::deque<Point> Tuyau::GetLineString
 // Historique: 21/04/2015 (O.Tonck - Ipsis)
 //================================================================
 (
-    double offset
+    double offset,
+    VoieMicro * pVoie
 )
 {
     std::deque<Point> result;
@@ -1521,7 +1522,7 @@ std::deque<Point> Tuyau::GetLineString
     pt.dbZ = GetHautAval();
     dqPoints.push_back(pt);
 
-    result = BuildLineStringGeometry(dqPoints, offset, dbLargTot, m_strLabel, m_pReseau->GetLogger());
+    result = BuildLineStringGeometry(dqPoints, offset, dbLargTot, m_strLabel, m_pReseau->GetLogger(), pVoie);
 
     return result;
 }

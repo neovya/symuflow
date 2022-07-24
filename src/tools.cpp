@@ -1366,7 +1366,7 @@ bool GetXmlDuree(DOMNode *pXMLNode, Reseau * pReseau, double &dbVal, vector<Plag
     return (t);
 }
 
-std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOriginal, double dbOffset, double dbTotalWidth, const std::string & strElementID, Logger * pLogger)
+std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOriginal, double dbOffset, double dbTotalWidth, const std::string & strElementID, Logger * pLogger, VoieMicro * pVoie)
 {
     // OTK - rmq. intérêt du paramètre dbTotalWidth ? je ne comprend pas. Ca me semble faux, mais on ne doit de toute façon jamais
     // passer dans le cas ou l'offset dépasse totalWIdth sur deux...
@@ -1376,13 +1376,18 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
     double dbAlpha;
     Point   pt11, pt12, pt21, pt22, ptInt;
 
+    std::map<double, size_t> mapPointIndexByLengthForLink, mapPointIndexByLengthForLane;
+    bool bFillMapPointIndexByLengthForLink = pVoie != nullptr && pVoie->GetParent()->GetMapPointIndexByLength().empty();
+
     // on filtre les points identiques
     std::deque<Point> lstPoints;
+    std::map<size_t, size_t> mapLinkPtIndexes;
     for(size_t i = 0; i < lstPointsOriginal.size(); i++)
     {
         if(i == 0)
         {
             lstPoints.push_back(lstPointsOriginal[i]);
+            mapLinkPtIndexes[lstPoints.size()-1] = i;
         }
         else
         {
@@ -1391,16 +1396,23 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
             {
                 lstPoints.push_back(lstPointsOriginal[i]);
             }
+            // we want the last index of a duplicated point series
+            // so we can use this point as the starting point from the distance we associated to it below
+            mapLinkPtIndexes[lstPoints.size()-1] = i;
         }
     }
 
 
     if( lstPoints.size() > 2)
     {
+        double dbCumLengthForLane = 0;
+        double dbCumLengthForLink = 0;
         for(int j=1; j<(int)lstPoints.size()-1; j++)
         {                        
             // Première droite
             dbAlpha  = atan2( lstPoints[j].dbY - lstPoints[j-1].dbY, lstPoints[j].dbX - lstPoints[j-1].dbX );
+
+            double dbPrevSegmentLength = sqrt((lstPoints[j].dbX - lstPoints[j-1].dbX)*(lstPoints[j].dbX - lstPoints[j-1].dbX) + (lstPoints[j].dbY - lstPoints[j-1].dbY)*(lstPoints[j].dbY - lstPoints[j-1].dbY) + (lstPoints[j].dbZ - lstPoints[j-1].dbZ)*(lstPoints[j].dbZ - lstPoints[j-1].dbZ));
 
             if( dbOffset > (dbTotalWidth/2.) )
             {
@@ -1451,20 +1463,54 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
 
             ptInt.dbZ = lstPoints[j].dbZ;
 
-            result.push_back(ptInt);
+            dbCumLengthForLink += dbPrevSegmentLength;
+            dbCumLengthForLane += sqrt((pt11.dbX - ptInt.dbX)*(pt11.dbX - ptInt.dbX) + (pt11.dbY - ptInt.dbY)*(pt11.dbY - ptInt.dbY) + + (pt11.dbZ - ptInt.dbZ)*(pt11.dbZ - ptInt.dbZ));
 
             if( j==1)
             {
                 pt11.dbZ = lstPoints[0].dbZ;
-                result.push_front(pt11);
+                result.push_back(pt11);
+
+                if (pVoie)
+                {
+                    if (bFillMapPointIndexByLengthForLink)
+                    {
+                        mapPointIndexByLengthForLink[0] = 0;
+                    }
+                    mapPointIndexByLengthForLane[0] = 0;
+                }
+            }
+
+            result.push_back(ptInt);
+
+            if (pVoie)
+            {
+                if (bFillMapPointIndexByLengthForLink)
+                {
+                    mapPointIndexByLengthForLink[dbCumLengthForLink] = mapLinkPtIndexes[j];
+                }
+                mapPointIndexByLengthForLane[dbCumLengthForLane] = j;
             }
 
             if( j+1==(int)lstPoints.size()-1)
             {
                 pt22.dbZ = lstPoints[j+1].dbZ;
                 result.push_back(pt22);
-            }
 
+                double dbNextSegmentLength = sqrt((lstPoints[j+1].dbX - lstPoints[j].dbX)*(lstPoints[j+1].dbX - lstPoints[j].dbX) + (lstPoints[j+1].dbY - lstPoints[j].dbY)*(lstPoints[j+1].dbY - lstPoints[j].dbY) + (lstPoints[j+1].dbZ - lstPoints[j].dbZ)*(lstPoints[j+1].dbZ - lstPoints[j].dbZ));
+                dbCumLengthForLink += dbNextSegmentLength;
+
+                dbCumLengthForLane += sqrt((pt22.dbX - ptInt.dbX)*(pt22.dbX - ptInt.dbX) + (pt22.dbY - ptInt.dbY)*(pt22.dbY - ptInt.dbY) + (pt22.dbZ - ptInt.dbZ)*(pt22.dbZ - ptInt.dbZ));
+
+                if (pVoie)
+                {
+                    if (bFillMapPointIndexByLengthForLink)
+                    {
+                        mapPointIndexByLengthForLink[dbCumLengthForLink] = mapLinkPtIndexes[j+1];
+                    }
+                    mapPointIndexByLengthForLane[dbCumLengthForLane] = j+1;
+                }
+            }
         }
     }
     else if(lstPoints.size() == 2) // Pas de point interne
@@ -1495,6 +1541,18 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
 
         result.push_back(pt11);
         result.push_back(pt22);
+
+        if (pVoie)
+        {
+            if (bFillMapPointIndexByLengthForLink)
+            {
+                mapPointIndexByLengthForLink[0] = 0;
+                mapPointIndexByLengthForLink[sqrt((pt22.dbX - pt11.dbX)*(pt22.dbX - pt11.dbX) + (pt22.dbY - pt11.dbY)*(pt22.dbY - pt11.dbY) + (pt22.dbZ - pt11.dbZ)*(pt22.dbZ - pt11.dbZ))] = mapLinkPtIndexes[1];
+            }
+
+            mapPointIndexByLengthForLane[0] = 0;
+            mapPointIndexByLengthForLane[sqrt((pt22.dbX - pt11.dbX)*(pt22.dbX - pt11.dbX) + (pt22.dbY - pt11.dbY)*(pt22.dbY - pt11.dbY) + (pt22.dbZ - pt11.dbZ)*(pt22.dbZ - pt11.dbZ))] = 1;
+        }
     }
     else if (lstPoints.size() == 1) // Un seul point !
     {
@@ -1503,10 +1561,28 @@ std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPointsOri
         *pLogger << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
 
         result.push_back(lstPoints.front());
+
+        if (pVoie)
+        {
+            if (bFillMapPointIndexByLengthForLink)
+            {
+                mapPointIndexByLengthForLink[0] = 0;
+            }
+            mapPointIndexByLengthForLane[0] = 0;
+        }
     }
     else // 0 points : celà peut-il arriver ?
     {
         assert(false);
+    }
+
+    if (pVoie)
+    {
+        pVoie->SetMapPointIndexByLength(mapPointIndexByLengthForLane);
+        if (bFillMapPointIndexByLengthForLink)
+        {
+            pVoie->GetParent()->SetMapPointIndexByLength(mapPointIndexByLengthForLink);
+        }
     }
 
     return result;
@@ -1527,134 +1603,102 @@ void CalculAbsCoords(Voie * pLane, double dbPos, bool bOutside, double & dbX, do
     }
 
     // Calcul de la position projetée
-    if (pLane->GetLength() > 0)
+    if (pLane->GetParent()->GetLength() > 0)
     {
-        dbPos = dbPos * pLane->GetLongueurProjection() / pLane->GetLength();
+        dbPos = dbPos * pLane->GetParent()->GetLongueurProjection() / pLane->GetParent()->GetLength();
     }
     else
     {
         dbPos = 0;
     }
     
+    const std::map<double, size_t> & mapPointIndexByLengthOnLink = pLane->GetParent()->GetMapPointIndexByLength();
+    const std::map<double, size_t> & mapPointIndexByLengthOnLane = pLane->GetMapPointIndexByLength();
 
-    if(pLane->GetLstPtsInternes().size()==0)
+    // get the segment index of the position on the parent link :
+    size_t iSegmentStartPointOnLink = 0;
+    double dbSegmentStartPos = 0;
+    size_t iSegmentStartPointOnLane = 0;
+    double dbLaneStartPos = 0;
+    for (std::map<double, size_t>::const_iterator iter = mapPointIndexByLengthOnLink.begin(); iter != mapPointIndexByLengthOnLink.end(); ++iter)
     {
-        if (pLane->GetLongueurProjection() > 0)
+        std::map<double, size_t>::const_iterator iterNext = iter;
+        iterNext++;
+        if ((iterNext == mapPointIndexByLengthOnLink.end()) || (iterNext->first >= dbPos))
         {
-            dbX = pLane->GetAbsAmont() + (dbPos / pLane->GetLongueurProjection()) * (pLane->GetAbsAval() - pLane->GetAbsAmont());
-            dbY = pLane->GetOrdAmont() + (dbPos / pLane->GetLongueurProjection()) * (pLane->GetOrdAval() - pLane->GetOrdAmont());
-            dbZ = pLane->GetHautAmont() + (dbPos / pLane->GetLongueurProjection()) * (pLane->GetHautAval() - pLane->GetHautAmont());
-
-            if (bOutside)
-            {
-                double decaly = (pLane->GetAbsAval() - pLane->GetAbsAmont()) / pLane->GetLongueurProjection();
-                double decalx = (pLane->GetOrdAval() - pLane->GetOrdAmont()) / pLane->GetLongueurProjection();
-
-                decalx = decalx *largeurTotale;
-                decaly = -decaly *largeurTotale;
-
-                dbX += decalx;
-                dbY += decaly;
-            }
+            dbSegmentStartPos = iter->first;
+            break;
         }
-        else
+        iSegmentStartPointOnLink++;
+    }
+    for (std::map<double, size_t>::const_iterator iter = mapPointIndexByLengthOnLane.begin(); iter != mapPointIndexByLengthOnLane.end(); ++iter)
+    {
+        std::map<double, size_t>::const_iterator iterNext = iter;
+        iterNext++;
+        if ((iterNext == mapPointIndexByLengthOnLane.end()) || (iterNext->first >= dbPos))
         {
-            dbX = pLane->GetAbsAmont();
-            dbY = pLane->GetOrdAmont();
-            dbZ = pLane->GetHautAmont();
+            dbLaneStartPos = iter->first;
+            break;
         }
+        iSegmentStartPointOnLane++;
+    }
+
+    Point startLinkPoint, startLanePoint, endLinkPoint, endLanePoint;
+    if (iSegmentStartPointOnLink == 0)
+    {
+        startLinkPoint = *pLane->GetParent()->GetExtAmont();
     }
     else
     {
-        // Recherche du morceau sur lequel est positionné le véhicule en fonction de sa position
-		int i;
-        double dbLg;
-        double dbSumLg = 0;        
-        Point *ppt1, *ppt2;
-        for(i=-1; i<(int)pLane->GetLstPtsInternes().size(); i++)
-        {
-            if(i==-1)
-            {
-                ppt1 = pLane->GetExtAmont();
-                ppt2 = pLane->GetLstPtsInternes()[0];
-            }
-            else if(i==(int)pLane->GetLstPtsInternes().size()-1)
-            {
-                ppt1 = pLane->GetLstPtsInternes()[i];
-                ppt2 = pLane->GetExtAval();
-            }
-            else
-            {                
-                ppt1 = pLane->GetLstPtsInternes()[i];
-                ppt2 = pLane->GetLstPtsInternes()[i+1];
-            }
+        startLinkPoint = *pLane->GetParent()->GetLstPtsInternes()[iSegmentStartPointOnLink-1];
+    }
 
-            dbLg = sqrt(pow( (ppt1->dbX - ppt2->dbX),2) + 
-                pow( (ppt1->dbY - ppt2->dbY),2) +
-                pow( (ppt1->dbZ - ppt2->dbZ),2));
+    if (iSegmentStartPointOnLink == pLane->GetParent()->GetLstPtsInternes().size())
+    {
+        endLinkPoint = *pLane->GetParent()->GetExtAval();
+    }
+    else
+    {
+        endLinkPoint = *pLane->GetParent()->GetLstPtsInternes()[iSegmentStartPointOnLink];
+    }
 
-            if(dbPos < dbSumLg+dbLg )
-            {
-                // Calcul de la postion du véhicule sur le morceau identifié
-                dbPos = dbPos - dbSumLg;
+    if (iSegmentStartPointOnLane == 0)
+    {
+        startLanePoint = *pLane->GetExtAmont();
+    }
+    else
+    {
+        startLanePoint = *pLane->GetLstPtsInternes()[iSegmentStartPointOnLane-1];
+    }
 
-                // Calcul des corrdonnées dans le repère
-                if (dbLg > 0)
-                {
-                    dbX = ppt1->dbX + (dbPos / dbLg * (ppt2->dbX - ppt1->dbX));
-                    dbY = ppt1->dbY + (dbPos / dbLg * (ppt2->dbY - ppt1->dbY));
-                    dbZ = ppt1->dbZ + (dbPos / dbLg * (ppt2->dbZ - ppt1->dbZ));
+    if (iSegmentStartPointOnLane == pLane->GetLstPtsInternes().size())
+    {
+        endLanePoint = *pLane->GetExtAval();
+    }
+    else
+    {
+        endLanePoint = *pLane->GetLstPtsInternes()[iSegmentStartPointOnLane];
+    }
 
-                    if (bOutside)
-                    {
-                        double decaly = (ppt2->dbX - ppt1->dbX) / dbLg;
-                        double decalx = (ppt2->dbY - ppt1->dbY) / dbLg;
+    double dbLinkSegmentLength = endLinkPoint.DistanceTo(startLinkPoint);
 
-                        decalx = decalx *largeurTotale;
-                        decaly = -decaly *largeurTotale;
+    double dbSegmentRatio = dbLinkSegmentLength > 0 ? (dbPos - dbSegmentStartPos) / dbLinkSegmentLength : 0;
 
-                        dbX += decalx;
-                        dbY += decaly;
-                    }
-                }
-                else
-                {
-                    dbX = ppt1->dbX;
-                    dbY = ppt1->dbY;
-                    dbZ = ppt1->dbZ;
-                }
+    dbX = startLanePoint.dbX + dbSegmentRatio * (endLanePoint.dbX - startLanePoint.dbX);
+    dbY = startLanePoint.dbY + dbSegmentRatio * (endLanePoint.dbY - startLanePoint.dbY);
+    dbZ = startLanePoint.dbZ + dbSegmentRatio * (endLanePoint.dbZ - startLanePoint.dbZ);
 
-                break;
-            }
-            else
-            {
-                dbSumLg += dbLg;
-            }
-        }
-        if( i == (int)pLane->GetLstPtsInternes().size())
-        {
-            dbX = pLane->GetAbsAval();
-            dbY = pLane->GetOrdAval();
-            dbZ = pLane->GetHautAval();
+    if (bOutside)
+    {
+        double dbLaneSegmentLength = startLanePoint.DistanceTo(endLanePoint);
+        double decaly = dbLaneSegmentLength > 0 ? (endLanePoint.dbX - startLanePoint.dbX) / dbLaneSegmentLength : 0;
+        double decalx = dbLaneSegmentLength > 0 ? (endLanePoint.dbY - startLanePoint.dbY) / dbLaneSegmentLength : 0;
 
-            if(bOutside)
-            {
-                ppt1 = pTuyau->GetLstPtsInternes()[pTuyau->GetLstPtsInternes().size()-1];
-                dbLg = sqrt((pLane->GetAbsAval() - ppt1->dbX)*(pLane->GetAbsAval() - ppt1->dbX)
-                    - (pLane->GetOrdAval() - ppt1->dbY)*(pLane->GetOrdAval() - ppt1->dbY));
-                if (dbLg > 0)
-                {
-                    double decaly = (pLane->GetAbsAval() - ppt1->dbX) / dbLg;
-                    double decalx = (pLane->GetOrdAval() - ppt1->dbY) / dbLg;
+        decalx = decalx *largeurTotale;
+        decaly = -decaly *largeurTotale;
 
-                    decalx = decalx *largeurTotale;
-                    decaly = -decaly *largeurTotale;
-
-                    dbX += decalx;
-                    dbY += decaly;
-                }
-            }
-        }
+        dbX += decalx;
+        dbY += decaly;
     }
 }
 
