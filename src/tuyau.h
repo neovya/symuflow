@@ -363,7 +363,7 @@ virtual        void            DeleteLanes() = 0;
 		bool		IsVoieReservee(TypeVehicule *pTV, int nVoie, double dbInst);
 
         // construit une polyligne correspondant à la géométrie du tronçon, à une position transversale donnée
-        std::deque<Point> GetLineString(double offset);
+        std::deque<Point> GetLineString(double offset, VoieMicro * pVoie = nullptr);
 
 
 

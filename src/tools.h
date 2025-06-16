@@ -27,6 +27,7 @@ class TuyauMicro;
 class TypeVehicule;
 class Connexion;
 class Voie;
+class VoieMicro;
 class Logger;
 
 namespace XERCES_CPP_NAMESPACE {
@@ -1300,7 +1301,7 @@ double GetDistance(Point pt1, Point pt2);
 bool IsCounterClockWise(Point *pt1, Point *pt2, Point *pt3);
 bool IsCounterClockWise(Point *V11, Point *V12, Point *V21, Point *V22);
 double AngleOfView( double ViewPt_X, double ViewPt_Y, double Pt1_X, double Pt1_Y, double Pt2_X, double Pt2_Y );
-std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPoints, double dbOffset, double dbTotalWidth, const std::string & strElementID, Logger * pLogger);
+std::deque<Point> BuildLineStringGeometry(const std::deque<Point> & lstPoints, double dbOffset, double dbTotalWidth, const std::string & strElementID, Logger * pLogger, VoieMicro * pVoie = nullptr);
 void CalculAbsCoords(Voie * pLane, double dbPos, bool bOutside, double & dbX, double & dbY, double & dbZ);
 double CalculAngleTuyau(Tuyau * pTuyau, double dbPos);
 
