@@ -19,6 +19,7 @@ struct EntreeCAFEx
     int                 nVoie;              // Numéro de voie
 
     int                 nPriorite;          // Type de priorité ( 0 : par défaut = priorité à droite, 1 : cédez-le passage, 2 : stop)
+    double              dbStopDuration;     // durée en seconds du marquage du stop le cas échéant
 
     std::deque<TuyauMicro*> lstTBr;         // Liste ordonnée des tronçons internes de la branche
 

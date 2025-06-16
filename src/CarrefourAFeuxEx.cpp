@@ -269,7 +269,7 @@ XERCES_CPP_NAMESPACE_USE
             
             
             GetXmlAttributeValue(xmlNode, "id_troncon_amont", strTronconAmont, ofLog);			
-			GetXmlAttributeValue(xmlNode, "num_voie_amont", iNumVoieAmont, ofLog);	
+			GetXmlAttributeValue(xmlNode, "num_voie_amont", iNumVoieAmont, ofLog);
 
             std::map<Tuyau*, std::map<int, boost::shared_ptr<MouvementsSortie> >, LessPtr<Tuyau> > * pMvtSortie = NULL;
             for(itMvtAutorises = m_mapMvtAutorises.begin(); itMvtAutorises != m_mapMvtAutorises.end() && !pMvtSortie; itMvtAutorises++)
@@ -360,7 +360,15 @@ XERCES_CPP_NAMESPACE_USE
 			if( strPriorite == "cedez_le_passage" )
 				entreeCAF->nPriorite = 1;
 			else if( strPriorite == "stop" )
+            {
 				entreeCAF->nPriorite = 2;
+                double dbStopDuration;
+                if (!GetXmlAttributeValue(pXMLEntreeCAF, "duree_stop", dbStopDuration, ofLog))
+                {
+                    dbStopDuration = m_pReseau->GetStopDuration();
+                }
+                entreeCAF->dbStopDuration = dbStopDuration;
+            }
 		}
 
 		// Construction du premier divergent à l'extrémité aval de l'entrée si ce n'est pas déjà fait
@@ -1268,6 +1276,16 @@ XERCES_CPP_NAMESPACE_USE
                     }
                 }
             }
+        }
+    }
+
+    // identification des voies avec stop en fin de voie
+    std::deque<EntreeCAFEx*>::iterator itE;
+    for(itE=m_LstEntrees.begin(); itE != m_LstEntrees.end(); itE++)
+    {
+        if ((*itE)->nPriorite == 2)
+        {
+            (*itE)->pTAm->GetVoie((*itE)->nVoie)->SetHasStop((*itE)->dbStopDuration);
         }
     }
 
