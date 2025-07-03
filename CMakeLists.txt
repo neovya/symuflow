@@ -8,7 +8,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-set(BOOST_PYTHONLIB python)
+set(BOOST_PYTHONLIB python38)
 
 
 include("cmake/macro.cmake")
@@ -18,7 +18,6 @@ find_package(SymuCore REQUIRED)
 
 find_package(Boost COMPONENTS
     chrono
-    date_time
     locale
     log
     thread
@@ -33,7 +32,6 @@ find_package(Boost COMPONENTS
     if(Boost_FOUND)
         message(STATUS "Library Boost is available")
         message(STATUS "\t ${Boost_CHRONO_LIBRARY}")
-        message(STATUS "\t ${Boost_DATE_TIME_LIBRARY}")
         message(STATUS "\t ${Boost_LOCALE_LIBRARY}")
         message(STATUS "\t ${Boost_SERIALIZATION_LIBRARY}")
         message(STATUS "\t ${Boost_WSERIALIZATION_LIBRARY}")
@@ -74,7 +72,7 @@ else()
 endif()
 
 # Python Search
-find_package(Python3 3.9 COMPONENTS Interpreter Development REQUIRED)
+find_package(Python3 3.8 EXACT COMPONENTS Interpreter Development REQUIRED)
 
 if(Python3_FOUND)
     include_directories(${Python3_INCLUDE_DIRS})
@@ -123,6 +121,8 @@ install(
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/symuflow)
 
 install(EXPORT SymuFlowTarget DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/symuflow)
+
+target_compile_features(SymuFlow PUBLIC cxx_std_14)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(${CMAKE_BINARY_DIR}/SymuFlow/SymuFlowConfigVersion.cmake

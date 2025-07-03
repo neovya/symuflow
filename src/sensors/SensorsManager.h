@@ -2,6 +2,7 @@
 #ifndef SensorsManagerH
 #define SensorsManagerH
 
+#include <string>
 #include <vector>
 #include <map>
 #include <deque>
@@ -44,16 +45,16 @@ private:
 
     Reseau              *m_pReseau;
 
-    double              m_dbPeriodeAgregation;              // Période d'agrégation des capteurs (en s)   
-    double              m_dbT0;                             // Instant de démarrage de la première période d'acquisition
+    double              m_dbPeriodeAgregation;              // Pï¿½riode d'agrï¿½gation des capteurs (en s)   
+    double              m_dbT0;                             // Instant de dï¿½marrage de la premiï¿½re pï¿½riode d'acquisition
 
-    int                 m_nPeriode;                         // Numéro de la période courante
+    int                 m_nPeriode;                         // Numï¿½ro de la pï¿½riode courante
 
-    int                 m_nNbInst;                          // Nombre d'instant défini dans les tableaux du nombre de 
-                                                            // véhicule ayant franchi le capteur (il est inférieur ou égal à  m_dbPeriodeAgregation / PasDeTemps
+    int                 m_nNbInst;                          // Nombre d'instant dï¿½fini dans les tableaux du nombre de 
+                                                            // vï¿½hicule ayant franchi le capteur (il est infï¿½rieur ou ï¿½gal ï¿½  m_dbPeriodeAgregation / PasDeTemps
 
 public:
-    std::vector<AbstractSensor*>        m_LstCapteurs;                  // Liste des capteurs gérés par cette instance de SensorsManager
+    std::vector<AbstractSensor*>        m_LstCapteurs;                  // Liste des capteurs gï¿½rï¿½s par cette instance de SensorsManager
 
 public:
 
@@ -69,7 +70,7 @@ public:
     void    CalculInfoCapteurs(double dbInstant);
     void    AddChgtVoie(double  dbInstant, Tuyau * pTuyau, double dbPosition, int nVoieOrigine, int nVoieDestination); // gestion du comptage des changements de voie
 
-    void    AddMesoVehicle(double dbInstant, Vehicule * pVeh, Tuyau * pLink, Tuyau * pDownstreamLink, double dbLengthInLink = DBL_MAX); // Prise en compte d'un véhicule qui sort d'un troncon meso
+    void    AddMesoVehicle(double dbInstant, Vehicule * pVeh, Tuyau * pLink, Tuyau * pDownstreamLink, double dbLengthInLink = DBL_MAX); // Prise en compte d'un vï¿½hicule qui sort d'un troncon meso
 
     void    UpdateTabNbVeh();   
     double  GetDebitMoyen(PonctualSensor *pCpt, int nVoie);
@@ -90,7 +91,7 @@ public:
 	AbstractSensor * GetCapteurFromID(const std::string & sID);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;
@@ -99,8 +100,8 @@ private:
 };
 
 /*==============================================================================================*/
-/* wrapper pour gérer de façon transparente les différents objets SensorsManager correspondants */
-/* à chaque type de capteur (evolution n°90)                                                    */
+/* wrapper pour gï¿½rer de faï¿½on transparente les diffï¿½rents objets SensorsManager correspondants */
+/* ï¿½ chaque type de capteur (evolution nï¿½90)                                                    */
 /*==============================================================================================*/
 class SensorsManagers {
 public:
@@ -123,7 +124,7 @@ public:
 
     void CalculInfoCapteurs(double dbInstSimu);
 
-    void AddMesoVehicle(double dbInstant, Vehicule * pVeh, Tuyau * pLink, Tuyau * pDownstreamLink, double dbLengthInLink = DBL_MAX); // Prise en compte d'un véhicule qui sort d'un troncon meso
+    void AddMesoVehicle(double dbInstant, Vehicule * pVeh, Tuyau * pLink, Tuyau * pDownstreamLink, double dbLengthInLink = DBL_MAX); // Prise en compte d'un vï¿½hicule qui sort d'un troncon meso
 
     std::vector<AbstractSensor*>            GetAllSensors();
     std::vector<int>                        GetPeriodes();
@@ -166,7 +167,7 @@ private:
     std::vector<SensorsManager*> m_GestionsCapteurs;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;

@@ -12,9 +12,6 @@ list(APPEND CMAKE_MODULE_PATH "@CMAKE_INSTALL_PREFIX@/lib/cmake/symuflow")
 find_dependency(SymuCore REQUIRED)
 
 find_dependency(Boost COMPONENTS
-  chrono
-  date_time
-  locale
   log
   thread
   serialization
