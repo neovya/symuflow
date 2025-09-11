@@ -8,7 +8,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-set(BOOST_PYTHONLIB python38)
+set(BOOST_PYTHONLIB python)
 
 
 include("cmake/macro.cmake")
@@ -72,7 +72,7 @@ else()
 endif()
 
 # Python Search
-find_package(Python3 3.8 EXACT COMPONENTS Interpreter Development REQUIRED)
+find_package(Python3 3.12 EXACT COMPONENTS Interpreter Development REQUIRED)
 
 if(Python3_FOUND)
     include_directories(${Python3_INCLUDE_DIRS})
