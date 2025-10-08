@@ -1444,7 +1444,7 @@ void XMLDocTrafic::AddTroncon(const std::string & strLibelle, Point* pPtAm, Poin
 
     // For EPiCAM : added the previous and next links in SYM_TRONCON nodes to help identify the CAF's internal trajectory a vehicle is on
     std::string upstreamLinkNames, downstreamLinkNames;
-    for (size_t iDownLink = 0; iDownLink < pTuyau->getConnectionAval()->m_LstTuyAv.size(); iDownLink++)
+    for (size_t iDownLink = 0; pTuyau->getConnectionAval() && iDownLink < pTuyau->getConnectionAval()->m_LstTuyAv.size(); iDownLink++)
     {
         if (iDownLink > 0)
         {
@@ -1452,7 +1452,7 @@ void XMLDocTrafic::AddTroncon(const std::string & strLibelle, Point* pPtAm, Poin
         }
         downstreamLinkNames += pTuyau->getConnectionAval()->m_LstTuyAv[iDownLink]->GetLabel();
     }
-    for (size_t iUpLink = 0; iUpLink < pTuyau->getConnectionAmont()->m_LstTuyAm.size(); iUpLink++)
+    for (size_t iUpLink = 0; pTuyau->getConnectionAmont() && iUpLink < pTuyau->getConnectionAmont()->m_LstTuyAm.size(); iUpLink++)
     {
         if (iUpLink > 0)
         {
