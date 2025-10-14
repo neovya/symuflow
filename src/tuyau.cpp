@@ -1401,6 +1401,7 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
 
     // Ménage
     DeleteLanes();
+    m_mapPointIndexByLength.clear();
 
     m_nRealNbVoies = m_nNbVoies;
 
