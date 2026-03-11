@@ -10,14 +10,14 @@ class VoieMicro;
 struct GrpPtsConflitTraversee;
 
 // Structure permettant d'associer un couple de voies origine destination
-// à un groupe de traversées correspondant
+// ï¿½ un groupe de traversï¿½es correspondant
 struct GroupeTraverseeEntreeGir {
     VoieMicro * pVoieEntree;
     VoieMicro * pVoieInterne;
     GrpPtsConflitTraversee * pGrpTra;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;
@@ -26,14 +26,14 @@ private:
 };
 
 // Structure permettant d'associer un couple voie interne - troncon de sortie
-// à un groupe de traversées correspondant
+// ï¿½ un groupe de traversï¿½es correspondant
 struct GroupeTraverseeSortieGir {
     TuyauMicro*  pTuyauSortie;
     VoieMicro*   pVoieInterne;
     GrpPtsConflitTraversee * pGrpTra;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;
@@ -41,7 +41,7 @@ private:
 	void serialize(Archive & ar, const unsigned int version);
 };
 
-// Structure de stockage des coefficients d'insertion définis manuellement
+// Structure de stockage des coefficients d'insertion dï¿½finis manuellement
 struct CoeffsInsertion {
 
     Tuyau * pTuyauEntree;
@@ -50,7 +50,7 @@ struct CoeffsInsertion {
     std::vector<double> coefficients;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;
@@ -65,7 +65,7 @@ struct MouvementsInsertion {
     std::map<int, boost::shared_ptr<MouvementsSortie> > mvtsInsertion;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;
@@ -76,42 +76,44 @@ private:
 class Giratoire : public BriqueDeConnexion
 {
 public:
-    // Constructeurs, destructeurs et assimilés
-    Giratoire() ; // Constructeur par défaut    
-    Giratoire(char *strID, double dbVitMax, std::string strRevetement,  double dbTagreg, double dbGamma, double dbMu, int nVoie, double dbLargeurVoie, char cType, int nm, double dbBeta, double dbBetaInt, bool    bTraversees, Reseau *pReseau);
+    // Constructeurs, destructeurs et assimilï¿½s
+    Giratoire() ; // Constructeur par dï¿½faut    
+    Giratoire(char *strID, double dbVitMax, std::string strRevetement,  double dbTagreg, double dbGamma, double dbMu, int nVoie, double dbLargeurVoie, char cType, int nm, double dbBeta, double dbBetaInt, double dbBetaOut, bool    bTraversees, Reseau *pReseau);
     ~Giratoire(); // Destructeur
 
 private:
 
-    // Variables caractéristiques du giratoire
+    // Variables caractï¿½ristiques du giratoire
     char        m_strNom[128];                  // Identifiant
 
     Reseau*     m_pReseau;
 
-    std::string m_strRevetement;               // Revêtement de l'anneau
+    std::string m_strRevetement;               // Revï¿½tement de l'anneau
 
-    double      m_dbTagreg;                     // Période d'agrégation
+    double      m_dbTagreg;                     // Pï¿½riode d'agrï¿½gation
     double      m_dbGamma;
     double      m_dbMu;
 
     double      m_dbLargeurVoie;                // Largeur de la couronne
     int         m_nVoie;                        // Nombre de voie de l'anneau
-    char        m_cType;                        // Type (urbain, péri-urbain, urbain-dense)
+    char        m_cType;                        // Type (urbain, pï¿½ri-urbain, urbain-dense)
     
-    double      m_dbBeta;                       // Probabilité pour un véhicule voulant s'insérer de détecter un véhicule sortant du giratoire
-    double      m_dbBetaInt;                    // Probabilité pour un véhicule voulant s'insérer d'être géné par les véhicules en amont sur la voie interne en régime fluide
+    double      m_dbBeta;                       // Probabilitï¿½ pour un vï¿½hicule voulant s'insï¿½rer de dï¿½tecter un vï¿½hicule sortant du giratoire
+    double      m_dbBetaInt;                    // Probabilitï¿½ pour un vï¿½hicule voulant s'insï¿½rer d'ï¿½tre gï¿½nï¿½ par les vï¿½hicules en amont sur la voie interne en rï¿½gime fluide
+                                                // (uniquement dans le cas d'un giratoire multivoie)
+    double      m_dbBetaOut;                    // Probabilitï¿½ pour un vï¿½hicule voulant traverser l'anneau externe pour sortir sur la voie de gauche de dÃ©tecter qu'un vÃ©hicule sur l'anneau externe sort avant lui sur la voie de droite, ne gÃªnant pas sa traversÃ©e de l'anneau
                                                 // (uniquement dans le cas d'un giratoire multivoie)
 
-    std::deque<TuyauMicro*>     m_LstTAmAv;     // Liste des tuyaux amont et aval du giratoire ordonnés dans le sens du parcours
+    std::deque<TuyauMicro*>     m_LstTAmAv;     // Liste des tuyaux amont et aval du giratoire ordonnï¿½s dans le sens du parcours
     std::deque<TuyauMicro*>     m_LstTInt;      // Liste des tuyaux internes du giratoire
 
     std::deque<TempsCritique>  m_LstTf;            // Liste des temps d'insertion
-    std::deque<TempsCritique>  m_LstTt;            // Liste des temps de traversée    
+    std::deque<TempsCritique>  m_LstTt;            // Liste des temps de traversï¿½e    
 
-    std::vector<CoeffsInsertion>    m_LstCoeffsInsertion;   // Liste des coefficients d'insertion définis manuellement
+    std::vector<CoeffsInsertion>    m_LstCoeffsInsertion;   // Liste des coefficients d'insertion dï¿½finis manuellement
 
-    std::vector<GroupeTraverseeEntreeGir> m_LstGrpTraEntree;   // Liste des goupes de traversées pour l'entrée sur le giratoire
-    std::vector<GroupeTraverseeSortieGir> m_LstGrpTraSortie;   // Liste des goupes de traversées pour la sortie du giratoire
+    std::vector<GroupeTraverseeEntreeGir> m_LstGrpTraEntree;   // Liste des goupes de traversï¿½es pour l'entrï¿½e sur le giratoire
+    std::vector<GroupeTraverseeSortieGir> m_LstGrpTraSortie;   // Liste des goupes de traversï¿½es pour la sortie du giratoire
 
     // Variables de simulation
 public:
@@ -125,6 +127,7 @@ public:
     char*   GetLabel(){return m_strNom;};    
     double  GetBeta(){return m_dbBeta;};
     double  GetBetaInt(){return m_dbBetaInt;};
+    double  GetBetaOut(){return m_dbBetaOut;};
 
     int     GetNbVoie(){return m_nVoie;};    
 
@@ -136,9 +139,9 @@ public:
 
     virtual void    CalculTraversee(Vehicule *pVeh, double dbInstant, std::vector<int> & vehiculeIDs);
 
-    // Gestion de l'insertion sur les giratoires à plusieurs voies
+    // Gestion de l'insertion sur les giratoires ï¿½ plusieurs voies
     bool	GetCoeffsMouvementsInsertion(Vehicule * pVeh, Voie *pVAm, Tuyau *pTAv, std::map<int, boost::shared_ptr<MouvementsSortie> > &mapCoeffs);
-    // Ajout de coefficients manuels (prioritaires sur les coefficients calculés par défaut)
+    // Ajout de coefficients manuels (prioritaires sur les coefficients calculï¿½s par dï¿½faut)
     void    AddCoefficientInsertion(Tuyau * pTuyauEntree, int nVoieEntree, Tuyau * pTuyauSortie, const std::vector<double> & coeffs);
 
 	// calcul particulier du barycentre pour les briques de type Giratoire
@@ -146,10 +149,10 @@ public:
 
     virtual double GetAdditionalPenaltyForUpstreamLink(Tuyau* pTuyauAmont);
 
-    // Fonctions relatives à la simulation des giratoires    
+    // Fonctions relatives ï¿½ la simulation des giratoires    
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 

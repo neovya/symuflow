@@ -5427,12 +5427,13 @@ const std::string & ssID
     }
 
     // Pour exploitation des valeurs par défaut de la periode d'aggregation des capteurs, beta, mu, gamma etc...
-    double dbDefaultTCapteurs, dbDefaultGamma, dbDefaultMu, dbDefaultBeta, dbDefaultBetaInt, dbDefaultPosCptAval, dbDefaultTi, dbDefaultTt;
+    double dbDefaultTCapteurs, dbDefaultGamma, dbDefaultMu, dbDefaultBeta, dbDefaultBetaInt, dbDefaultBetaOut, dbDefaultPosCptAval, dbDefaultTi, dbDefaultTt;
     GetXmlAttributeValue(pXMLNodeTrafic, "PeriodeAgregationCapteurs", dbDefaultTCapteurs, &loadingLogger);
     GetXmlAttributeValue(pXMLNodeTrafic, "Gamma", dbDefaultGamma, &loadingLogger);
     GetXmlAttributeValue(pXMLNodeTrafic, "Mu", dbDefaultMu, &loadingLogger);
     GetXmlAttributeValue(pXMLNodeTrafic, "Beta", dbDefaultBeta, &loadingLogger);
     GetXmlAttributeValue(pXMLNodeTrafic, "BetaInt", dbDefaultBetaInt, &loadingLogger);
+    GetXmlAttributeValue(pXMLNodeTrafic, "BetaOut", dbDefaultBetaOut, &loadingLogger);
     GetXmlAttributeValue(pXMLNodeTrafic, "pos_cpt_Av", dbDefaultPosCptAval, &loadingLogger);
     GetXmlAttributeValue(pXMLNodeTrafic, "ti", dbDefaultTi, &loadingLogger);
     GetXmlAttributeValue(pXMLNodeTrafic, "tt", dbDefaultTt, &loadingLogger);
@@ -5851,7 +5852,7 @@ const std::string & ssID
     // SECTION RESEAU / CONNEXIONS / GIRATOIRES
     pXMLNode = m_pXMLUtil->SelectSingleNode("./CONNEXIONS/GIRATOIRES", pXMLReseau->getOwnerDocument(), (DOMElement*)pXMLReseau);
     Giratoire*  pGiratoire;
-    double dbVitMax, dbTAgr, dbBeta, dbBetaInt;
+    double dbVitMax, dbTAgr, dbBeta, dbBetaInt, dbBetaOut;
     bool bTraversees;
     int nm;
 
@@ -5888,12 +5889,13 @@ const std::string & ssID
             GetXmlAttributeValue(pXMLChild, "m", nm, &loadingLogger);
             if(!GetXmlAttributeValue(pTraficParams, "Beta", dbBeta, &loadingLogger)) dbBeta = dbDefaultBeta;
             if(!GetXmlAttributeValue(pTraficParams, "BetaInt", dbBetaInt, &loadingLogger)) dbBetaInt = dbDefaultBetaInt;
+            if(!GetXmlAttributeValue(pTraficParams, "BetaOut", dbBetaOut, &loadingLogger)) dbBetaOut = dbDefaultBetaOut;
             if(!GetXmlAttributeValue(pTraficParams, "traversees", bTraversees, &loadingLogger)) bTraversees = true;
 
             strTmp = "";
             strcpy(strRevetement, strTmp.c_str());
 
-            pGiratoire = new Giratoire(strID, dbVitMax, strRevetement, dbTAgr, dbGamma, dbMu, nVoie, dbLargeurVoie, cType, nm, dbBeta, dbBetaInt, bTraversees, this);
+            pGiratoire = new Giratoire(strID, dbVitMax, strRevetement, dbTAgr, dbGamma, dbMu, nVoie, dbLargeurVoie, cType, nm, dbBeta, dbBetaInt, dbBetaOut, bTraversees, this);
 
             // Chargement ZLevel
             int nZlevel;
@@ -9287,7 +9289,8 @@ void Reseau::GenerateAssignmentNetwork()
     double                  dbTf,
     double                  dbInstant,
     bool                    bDebutPasTemps,         // Calcul en utilisant les infos disponibles pour le vehicule en debut de pas de temps
-    double                  dbTt                    // temps de traversée additionel
+    double                  dbTt,                   // temps de traversée additionel
+    bool                    bSortieGiratoire        // traversée de sortie de l'anneau externe du giratoire
 )
 {
     boost::shared_ptr<Vehicule> pVehPrioritaire;
@@ -9336,8 +9339,51 @@ void Reseau::GenerateAssignmentNetwork()
         }
     }
 
+    if (pVehPrioritaire)
+    {
+        // CP du véhicule particulier prioritaire qui sort du réseau pendant le pas de temps : on l'ignore
+        if (!(bDebutPasTemps || pVehPrioritaire->GetLink(0)))
+        {
+            pVehPrioritaire.reset();
+        }
+        else if (bSortieGiratoire)
+        {
+            // CP du véhicule qui sort du giratoire. On veut ignorer le véhicule prioritaire si celui si sort du giratoire
+            // sur une voie plus à droite que la voie de sortie du véhicule en attente, en fonction d'un tirage
+            // liée au coefficient Beta du giratoire.
+            Tuyau * pTuyAval = pVehEnAttente->GetLink(0);
+            Voie * pNextVoieNP = pVehEnAttente->GetOrCalculNextVoie(pTNPrio, dbInstant);
+            Voie * pNextVoieP = pVehPrioritaire->GetOrCalculNextVoie(pTPrio, dbInstant);
+            if (pNextVoieP && pNextVoieNP && pNextVoieP->GetParent() == pTuyAval && pNextVoieNP->GetParent() == pTuyAval)
+            {
+                // si il n'y a pas vraiment traversée
+                if (pNextVoieP->GetNum() < pNextVoieNP->GetNum()) {
+                    // et que le tirage permet au véhicule de s'en rendre compte (ie le véhicule prioritaire a bien mis son clignottant)
+                    Giratoire * pGir = (Giratoire*)((Tuyau*)pTPrio->GetParent())->GetBriqueParente();
+                    unsigned int    number;                                        
+                                                                                
+                    if( pVehPrioritaire->GetResTirFollOut() == -1 )
+                    {
+                        number = this->GetRandManager()->myRand();
+                        double dbRand = (double)number / (double)MAXIMUM_RANDOM_NUMBER;                                            
+
+                        //pVehFollower->SetResTirFoll( (double)number / (double)UINT_MAX );
+                        pVehPrioritaire->SetResTirFollOut( dbRand );
+                    }
+
+                    if(pVehPrioritaire->GetResTirFollOut() > pGir->GetBetaOut())
+                    // Le véhicule sortant ne gène pas le flux d'insertion
+                    {
+                        pVehPrioritaire->SetResTirFollOut(-1);
+                        pVehPrioritaire.reset();
+                    }
+                }
+            }
+        }
+    }
+
     // Calcul du temps prévisionnel pour que le véhicule prioritaire atteigne le point de conflit
-    if(pVehPrioritaire && (bDebutPasTemps || pVehPrioritaire->GetLink(0))) // CP du véhicule particulier prioritaire qui sort du réseau pendant le pas de temps : on l'ignore
+    if(pVehPrioritaire) 
     {
         // Calcul de la distance à parcourir pour le véhicule prioritaire avant d'atteindre le point de conflit au début du pas de temps
         if( pVehPrioritaire->GetLink(1) == pTPrio->GetParent() )    // Le véhicule prioritaire est déjà sur le tronçon prioritaire
@@ -9369,7 +9415,7 @@ void Reseau::GenerateAssignmentNetwork()
 
     dbtm = pVehEnAttente->GetTempsDistance( dbInstant, dbDstVehAtt, pas_de_temps, bDebutPasTemps ) + dbTt;
 
-    if( pVehPrioritaire && (bDebutPasTemps || pVehPrioritaire->GetLink(0))) // CP du véhicule particulier prioritaire qui sort du réseau pendant le pas de temps : on l'ignore
+    if( pVehPrioritaire ) // CP du véhicule particulier prioritaire qui sort du réseau pendant le pas de temps : on l'ignore
     {
         if( dbtm < dbtM )   // Le véhicule passe
         {

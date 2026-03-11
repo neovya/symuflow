@@ -913,7 +913,7 @@ public:
 
         double                          GetDstChgtVoie(){return m_dbDstChgtVoie;}
 
-        bool                            CalculTraversee(Vehicule *pVehEnAttente, std::vector<int> & vehiculeIDs, PtConflitTraversee *pPtCT, GrpPtsConflitTraversee  *pGrpPtsCT,  double dbTf, double dbInstant, bool bDebutPasTemps = false, double dbTt = 0.0);
+        bool                            CalculTraversee(Vehicule *pVehEnAttente, std::vector<int> & vehiculeIDs, PtConflitTraversee *pPtCT, GrpPtsConflitTraversee  *pGrpPtsCT,  double dbTf, double dbInstant, bool bDebutPasTemps = false, double dbTt = 0.0, bool bSortieGiratoire = false);
 
 		bool							HasVehicule( VoieMicro* pV );
 

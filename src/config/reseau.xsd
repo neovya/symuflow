@@ -486,12 +486,17 @@ Dans le cas d'une brique de connexion, on suppose que l'ensemble des éléments 
     </xsd:attribute>
     <xsd:attribute name="Beta" type="typeFloat01" use="optional">
       <xsd:annotation>
-        <xsd:documentation>Pour giratoires uniquement : probabilité pour un véhicule voulant s'insérer de détecter un véhicule sortant du giratoire en régime fluide (le véhicule sortant détecté ne gène pas l'insertion).</xsd:documentation>
+        <xsd:documentation>Pour giratoires uniquement : probabilité pour un véhicule voulant s'insérer de ne pas détecter un véhicule sortant du giratoire en régime fluide (le véhicule sortant gène l'insertion).</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="BetaInt" type="typeFloat01" use="optional">
       <xsd:annotation>
         <xsd:documentation>Pour giratoires uniquement : probabilité pour un véhicule voulant s'insérer d'être géné par un véhicule arrivant sur la voie interne du giratoire en régime fluide (à définir uniquement dans le cas d'un giratoire à 2 voies)</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="BetaOut" type="typeFloat01" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Pour giratoires uniquement : probabilité pour un véhicule voulant sortir depuis la voie interne d'un giratoire multivoies vers la voie de gauche du tronçon de sortie de ne pas détecter qu'un véhicule sur la voie externe de l'anneau ne gêne pas sa sortie car il sort sur le même tronçon et sur la voie de droite (le véhicule sortant détecté gène alors la traversée de l'anneau externe)</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="pos_cpt_Av" type="typeFloatPositif" use="optional">
@@ -1505,6 +1510,11 @@ Si ce code n'est pas défini (ainsi que le code de restitution - attribut EPSGou
     <xsd:attribute default="0.3" name="BetaInt" type="typeFloat01" use="optional">
       <xsd:annotation>
         <xsd:documentation>Pour giratoires uniquement : probabilité pour un véhicule voulant s'insérer d'être géné par un véhicule arrivant sur la voie interne du giratoire en régime fluide (à définir uniquement dans le cas d'un giratoire à 2 voies)</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute default="1" name="BetaOut" type="typeFloat01" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Pour giratoires uniquement : probabilité pour un véhicule voulant sortir depuis la voie interne d'un giratoire multivoies vers la voie de gauche du tronçon de sortie de ne pas détecter qu'un véhicule sur la voie externe de l'anneau ne gêne pas sa sortie car il sort sur le même tronçon et sur la voie de droite (le véhicule sortant détecté gène alors la traversée de l'anneau externe)</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute default="20" name="pos_cpt_Av" type="typeFloatPositif" use="optional">

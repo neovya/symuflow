@@ -311,6 +311,7 @@ Vehicule::Vehicule
     m_bAccMaxCalc = other.m_bAccMaxCalc;
     m_dbResTirFoll = other.m_dbResTirFoll;
     m_dbResTirFollInt = other.m_dbResTirFollInt;
+    m_dbResTirFollOut = other.m_dbResTirFollOut;
 
     m_bOutside = other.m_bOutside;
     m_bArretAuFeu = other.m_bArretAuFeu;
@@ -489,6 +490,7 @@ Vehicule::Vehicule
 
     m_dbResTirFoll = -1;
     m_dbResTirFollInt = -1;
+    m_dbResTirFollOut = -1;
 
     m_bRegimeFluide = true;
     m_bRegimeFluideLeader = true;
@@ -3616,6 +3618,41 @@ Voie* Vehicule::CalculNextVoie
     return NULL;
 }
 
+//================================================================
+Voie*       Vehicule::GetOrCalculNextVoie(Voie*    pVoie, double  dbInstant)
+//----------------------------------------------------------------
+// Fonction  : Récupère ou calcule si pas déjà fait la voie
+//             qui suit la voie passée en paramètres.
+//             Remarque : mis en place pour factoriser ce
+//             traitement réalisé à plusieurs endroits
+// Version du: 11/03/2026
+// Historique: 11/03/2026(O.Tonck - Neovya)
+//             Création
+//================================================================
+{
+    Voie * pNextVoie = NULL;
+    for(int i=0; i<(int)this->m_LstVoiesSvt.size(); i++)
+    {
+        if( this->m_LstVoiesSvt[i] == pVoie )
+        {
+            if(i+1 < (int)this->m_LstVoiesSvt.size())
+                pNextVoie = this->m_LstVoiesSvt[i+1];
+            else
+            {
+                // Calcul de la voie suivante et MAJ de la liste des voies du véhicule                                            
+                pNextVoie = this->CalculNextVoie(this->m_LstVoiesSvt[i], dbInstant);
+                this->m_LstVoiesSvt.push_back( (VoieMicro*)pNextVoie);
+            }
+            break;
+        }
+    }
+    if(!pNextVoie)
+    {                                              
+        pNextVoie = this->CalculNextVoie(pVoie, dbInstant);
+        this->m_LstVoiesSvt.push_back( (VoieMicro*)pNextVoie);
+    }
+    return pNextVoie;
+}
 
 //================================================================
 std::map<int, MouvementsSortie> Vehicule::AdaptMouvementAutorises
@@ -5153,7 +5190,8 @@ void Vehicule::CopyTo( boost::shared_ptr<Vehicule> pVehDst )
     pVehDst->m_bAccMaxCalc = m_bAccMaxCalc;
 
     pVehDst->m_dbResTirFoll = m_dbResTirFoll;        
-    pVehDst->m_dbResTirFollInt = m_dbResTirFollInt;                                                                                   
+    pVehDst->m_dbResTirFollInt = m_dbResTirFollInt;
+    pVehDst->m_dbResTirFollOut = m_dbResTirFollOut;
 
     pVehDst->m_bOutside = m_bOutside;  
 
@@ -5897,6 +5935,7 @@ void Vehicule::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_bAccMaxCalc);
     ar & BOOST_SERIALIZATION_NVP(m_dbResTirFoll);
     ar & BOOST_SERIALIZATION_NVP(m_dbResTirFollInt);
+    ar & BOOST_SERIALIZATION_NVP(m_dbResTirFollOut);
     ar & BOOST_SERIALIZATION_NVP(m_bOutside);
     ar & BOOST_SERIALIZATION_NVP(m_bArretAuFeu);
     ar & BOOST_SERIALIZATION_NVP(m_bArretAuStop);

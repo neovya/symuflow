@@ -320,6 +320,9 @@ protected:
     double      m_dbResTirFollInt;      // Variable permettant de stocker le résultat du tirage aléatoire d'un véhicule sur
                                         // un lien en amont d'un convergent d'un giratoire (à 2 voies uniquement) sur la voie interne
                                         // permettant de savoir si il gène l'insertion d'un véhicule sur la voie externe
+    double      m_dbResTirFollOut;      // Variable permettant de stocker le résultat du tirage aléatoire d'un véhicule sur la voie externe
+                                        // d'un anneau de giratoire (à 2 voies uniquement)
+                                        // permettant de savoir si il gène la sortie du véhicule sur la voie interne
 
     bool        m_bOutside;             // Indique si le véhicule est en retrait de la voie (dans ce cas, il ne gène pas le traffic mais
                                         // il est qaund même pris en compte pour le calcul acoustique comme si il était sur la voie)
@@ -549,8 +552,10 @@ virtual	void		SetChtgVoie(bool bVal){m_bChgtVoie = bVal;}
     bool        IsPasse(Tuyau *pT, double dbPos);
     bool        IsDejaPasse(Tuyau *pT, double dbPos);
 
-virtual Voie*       CalculNextVoie(Voie*    pVoie, double  dbInstant);
-virtual void        CalculVoiesPossibles(double dbInstant);
+    virtual Voie*       CalculNextVoie(Voie*    pVoie, double  dbInstant);
+    virtual void        CalculVoiesPossibles(double dbInstant);
+
+    Voie*       GetOrCalculNextVoie(Voie*    pVoie, double  dbInstant);
 
     Tuyau*       CalculNextTuyau(Tuyau*    pTuyau, double  dbInstant);
 
@@ -601,6 +606,9 @@ virtual void        CalculVoiesPossibles(double dbInstant);
 
     void        SetResTirFollInt(double dbRes){ m_dbResTirFollInt = dbRes;};
     double      GetResTirFollInt(){return m_dbResTirFollInt;};
+
+    void        SetResTirFollOut(double dbRes){ m_dbResTirFollOut = dbRes;};
+    double      GetResTirFollOut(){return m_dbResTirFollOut;};
 
     bool        IsItineraire(Tuyau *pT);
 

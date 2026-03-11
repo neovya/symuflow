@@ -411,28 +411,7 @@ bool AbstractCarFollowing::TestConvergentInsertion(PointDeConvergence * pPointDe
                         // Le follower est-il amené à sortir par ce tronçon ?
 
                         // Recherche de la voie précédente
-                        pNextVoie = NULL;
-                        for(int i=0; i<(int)pVehFollower->m_LstVoiesSvt.size(); i++)
-                        {
-                            if( pVehFollower->m_LstVoiesSvt[i] == pDvgt->m_LstTuyAm.front()->GetLstLanes()[0] )
-                            {
-                                if(i+1 < (int)pVehFollower->m_LstVoiesSvt.size())
-                                    pNextVoie = pVehFollower->m_LstVoiesSvt[i+1];
-                                else
-                                {
-                                    // Calcul de la voie suivante et MAJ de la liste des voies du véhicule                                            
-                                    pNextVoie = pVehFollower->CalculNextVoie(pVehFollower->m_LstVoiesSvt[i],dbInstant);
-                                    pVehFollower->m_LstVoiesSvt.push_back( (VoieMicro*)pNextVoie);
-                                }
-                                break;
-                            }
-                        }
-                        if(!pNextVoie)
-                        {                                              
-                            pNextVoie = pVehFollower->CalculNextVoie(pDvgt->m_LstTuyAm.front()->GetLstLanes()[0],dbInstant);
-                            pVehFollower->m_LstVoiesSvt.push_back( (VoieMicro*)pNextVoie);
-                        }
-
+                        pNextVoie = pVehFollower->GetOrCalculNextVoie(pDvgt->m_LstTuyAm.front()->GetLstLanes()[0], dbInstant);
                         if(pNextVoie)
                         {
                             if(pPointDeConvergence->GetCvg()->GetGiratoire() && pNextVoie->GetParent() == pSortie)   // le follower sort

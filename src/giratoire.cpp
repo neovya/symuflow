@@ -53,6 +53,7 @@ using namespace std;
     int     nm,
     double  dbBeta,
     double  dbBetaInt,
+    double  dbBetaOut,
     bool    bTraversees,
     Reseau  *pReseau
     ):BriqueDeConnexion(strID, pReseau, 'G', bTraversees)
@@ -72,6 +73,7 @@ using namespace std;
     m_cType = cType;
     m_dbBeta = dbBeta;
     m_dbBetaInt = dbBetaInt;
+    m_dbBetaOut = dbBetaOut;
 
 
     m_pReseau = pReseau;
@@ -736,7 +738,7 @@ void Giratoire::CalculTraversee(Vehicule *pVeh, double dbInstant, std::vector<in
                 // Boucle sur les points de conflit du groupe
                 for( std::deque<boost::shared_ptr<PtConflitTraversee> >::iterator itTra = pGrpTra->lstPtsConflitTraversee.begin(); itTra != pGrpTra->lstPtsConflitTraversee.end(); itTra++)
                 {
-                    bool bOK = m_pReseau->CalculTraversee( pVeh, vehiculeIDs, (*itTra).get(), pGrpTra, GetTfTra(pVeh->GetType()), dbInstant );
+                    bool bOK = m_pReseau->CalculTraversee( pVeh, vehiculeIDs, (*itTra).get(), pGrpTra, GetTfTra(pVeh->GetType()), dbInstant, false, 0.0, true );
                     if(!bOK || !pVeh->IsRegimeFluide() )
                     {
                         // on positionne le véhicule en attente d'insertion
@@ -1052,6 +1054,7 @@ void Giratoire::serialize(Archive & ar, const unsigned int version)
 
     ar & BOOST_SERIALIZATION_NVP(m_dbBeta);
     ar & BOOST_SERIALIZATION_NVP(m_dbBetaInt);
+    ar & BOOST_SERIALIZATION_NVP(m_dbBetaOut);
 
     ar & BOOST_SERIALIZATION_NVP(m_LstTAmAv);
     ar & BOOST_SERIALIZATION_NVP(m_LstTInt);
