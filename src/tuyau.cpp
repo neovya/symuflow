@@ -868,15 +868,16 @@ void TuyauMacro::TrafficOutput()
     PlageTemporelle* pPlage,                    // Plage temporelle éventuelle
     double          dbDureeSimu,                // Durée de la simulation
     int             nVoie,                      // Numéro de la voie à interdire
-    bool            bActive                     // activer ou désactiver la voie réservée
+    bool            bActive,                    // activer ou désactiver la voie réservée
+    bool            bAllowBypass                // autorise le contournement pour sortie
 )
 {    	
     for(size_t i = 0; i < typesInterdits.size(); i++)
     {
         TypeVehicule* pTV = typesInterdits[i];
-        // Si pas de définition des vitesses réglementaire, on la crée
-	    if( bActive && m_mapVoiesReservees.find( pTV ) == m_mapVoiesReservees.end() )
-	    {
+
+        if(bActive)
+        {
             for(int j = 0; j < getNb_voies(); j++)
             {
                 m_mapVoiesReservees[pTV][j].SetLag(m_pReseau->GetLag());
@@ -885,25 +886,38 @@ void TuyauMacro::TrafficOutput()
                 {
                     *pNewBool = false;
                 }
-                boost::shared_ptr<tracked_bool> pNewBool2 = boost::make_shared<tracked_bool>(bActive);
                 if(!pPlage)
                 {
                     m_mapVoiesReservees[pTV][j].AddVariation(dbDuree, pNewBool);
-                    m_mapVoiesReservees[pTV][j].AddVariation(dbDureeSimu-dbDuree, pNewBool2);
+                    m_mapVoiesReservees[pTV][j].AddVariation(dbDureeSimu - dbDuree, boost::make_shared<tracked_bool>(!bActive));
                 }
                 else
                 {
-                    m_mapVoiesReservees[pTV][j].AddVariation(dbDureeSimu, pNewBool2);
+                    m_mapVoiesReservees[pTV][j].AddVariation(dbDureeSimu, boost::make_shared<tracked_bool>(!bActive));
                     m_mapVoiesReservees[pTV][j].AddVariation(pPlage, pNewBool);
                 }
+
+                m_mapVoiesReserveesAllowBypass[pTV][j].SetLag(m_pReseau->GetLag());
+                boost::shared_ptr<tracked_bool> pNewBoolAllow = boost::make_shared<tracked_bool>(false);
+                if(j == nVoie)
+                {
+                    *pNewBoolAllow = bAllowBypass;
+                }
+                if(!pPlage)
+                {
+                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(dbDuree, pNewBoolAllow);
+                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(dbDureeSimu - dbDuree, boost::make_shared<tracked_bool>(false));
+                }
+                else
+                {
+                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(dbDureeSimu, boost::make_shared<tracked_bool>(false));
+                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(pPlage, pNewBoolAllow);
+                }
             }
-	    }
+        }
         else
         {
-            // il y a deja des vit. reg. définies pour ce type de véhicule :
-            map<int , ListOfTimeVariation<tracked_bool> > & voiesInterditesMap = m_mapVoiesReservees[pTV];
-
-            // Par construction, il existe une liste par voie :
+            map<int, ListOfTimeVariation<tracked_bool> > & voiesInterditesMap = m_mapVoiesReservees[pTV];
             ListOfTimeVariation<tracked_bool> & listVitReg = voiesInterditesMap[nVoie];
             boost::shared_ptr<tracked_bool> pNewBool = boost::make_shared<tracked_bool>(bActive);
             if(pPlage)
@@ -912,8 +926,22 @@ void TuyauMacro::TrafficOutput()
             }
             else
             {
-                // intégration de la vitesse nulle entre dbLag et dbLag + dbDuree
-                listVitReg.InsertVariation(dbLag, dbLag+dbDuree, pNewBool);
+                listVitReg.InsertVariation(dbLag, dbLag + dbDuree, pNewBool);
+            }
+
+            if(m_mapVoiesReserveesAllowBypass.find(pTV) != m_mapVoiesReserveesAllowBypass.end()
+               && m_mapVoiesReserveesAllowBypass[pTV].find(nVoie) != m_mapVoiesReserveesAllowBypass[pTV].end())
+            {
+                ListOfTimeVariation<tracked_bool> & listAllowBypass = m_mapVoiesReserveesAllowBypass[pTV][nVoie];
+                boost::shared_ptr<tracked_bool> pNewBoolAllow = boost::make_shared<tracked_bool>(false);
+                if(pPlage)
+                {
+                    listAllowBypass.AddVariation(pPlage, pNewBoolAllow);
+                }
+                else
+                {
+                    listAllowBypass.InsertVariation(dbLag, dbLag + dbDuree, pNewBoolAllow);
+                }
             }
         }
     }
@@ -928,7 +956,7 @@ double Tuyau::GetMaxVitRegByTypeVeh(TypeVehicule *pTV, double dbInst, double dbP
         double dbTMp = GetVitRegByTypeVeh(pTV, dbInst, dbPos, iVoie);
         dbMaVitReg = std::max<double>(dbMaVitReg, dbTMp);
     }
-	return dbMaVitReg;		
+    return dbMaVitReg;
 }
 
 // Calcule et renvoie la vitesse réglementaire à l'instant et la position donnée pour un type de véhicule et une voie donnée,
@@ -991,7 +1019,7 @@ double Tuyau::GetVitRegByTypeVeh(TypeVehicule *pTV, double dbInst, double dbPos,
 
 
 //================================================================
-    bool Tuyau::IsVoieInterdite(TypeVehicule *pTV, int nVoie, double dbInst)
+    bool Tuyau::IsVoieInterdite(TypeVehicule *pTV, int nVoie, double dbInst, bool bBypassMode)
 //----------------------------------------------------------------
 // Fonction  : Indique si le troncon est interdit à la circulation
 //             sur la voie spécifiée et pour le type de véhicule
@@ -1020,8 +1048,8 @@ double Tuyau::GetVitRegByTypeVeh(TypeVehicule *pTV, double dbInst, double dbPos,
     {
         if(m_mapVoiesReservees[pTV].find(nVoie) != m_mapVoiesReservees[pTV].end())
         {
-            tracked_bool * bInterdit = m_mapVoiesReservees[pTV][nVoie].GetVariationEx(dbInst);
-            if(*bInterdit)
+            // use IsVoieReservee which can honor bypass mode
+            if(IsVoieReservee(pTV, nVoie, dbInst, bBypassMode))
             {
                 bResult = true;
             }
@@ -1032,7 +1060,7 @@ double Tuyau::GetVitRegByTypeVeh(TypeVehicule *pTV, double dbInst, double dbPos,
 }
 
 //================================================================
-bool Tuyau::IsVoieReservee(TypeVehicule *pTV, int nVoie, double dbInst)
+bool Tuyau::IsVoieReservee(TypeVehicule *pTV, int nVoie, double dbInst, bool bBypassMode)
 //----------------------------------------------------------------
 // Fonction  : Indique si le troncon est réservé à la circulation
 //             sur la voie spécifiée et pour le type de véhicule
@@ -1044,17 +1072,34 @@ bool Tuyau::IsVoieReservee(TypeVehicule *pTV, int nVoie, double dbInst)
 {
 	bool bResult = false;
 
-	if (m_mapVoiesReservees.find(pTV) != m_mapVoiesReservees.end())
-	{
-		if (m_mapVoiesReservees[pTV].find(nVoie) != m_mapVoiesReservees[pTV].end())
-		{
-			tracked_bool * bReserve = m_mapVoiesReservees[pTV][nVoie].GetVariationEx(dbInst);
-			if (*bReserve)
-			{
-				bResult = true;
-			}
-		}
-	}
+    if (m_mapVoiesReservees.find(pTV) != m_mapVoiesReservees.end())
+    {
+        if (m_mapVoiesReservees[pTV].find(nVoie) != m_mapVoiesReservees[pTV].end())
+        {
+            tracked_bool * bReserve = m_mapVoiesReservees[pTV][nVoie].GetVariationEx(dbInst);
+            if (*bReserve)
+            {
+                // si on est en mode bypass et que la variation allowBypass est vraie, considérer non réservée
+                if(bBypassMode && m_mapVoiesReserveesAllowBypass.find(pTV) != m_mapVoiesReserveesAllowBypass.end()
+                    && m_mapVoiesReserveesAllowBypass[pTV].find(nVoie) != m_mapVoiesReserveesAllowBypass[pTV].end())
+                {
+                    tracked_bool * bAllow = m_mapVoiesReserveesAllowBypass[pTV][nVoie].GetVariationEx(dbInst);
+                    if(bAllow && *bAllow)
+                    {
+                        bResult = false;
+                    }
+                    else
+                    {
+                        bResult = true;
+                    }
+                }
+                else
+                {
+                    bResult = true;
+                }
+            }
+        }
+    }
 
 	return bResult;
 }

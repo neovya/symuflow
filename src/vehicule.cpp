@@ -4781,6 +4781,16 @@ void Vehicule::CalculVoiesPossibles
 
     m_bVoiesOK.clear();
 
+    // Mode de contournement : si la sortie est très proche (<= 20 m), autoriser
+    // un contournement temporaire des voies réservées si celles-ci le permettent.
+    double dbAllowBypassDist = 200.0;
+    bool bBypassMode = false;
+    if(m_pVoie[1])
+    {
+        double dbRemaining = m_pVoie[1]->GetLength() - m_pPos[1];
+        bBypassMode = (m_pNextTuyau != NULL && dbRemaining <= dbAllowBypassDist);
+    }
+
     // Cas particulier du bus qui voit un arrêt en aval sur le tronçon courant.
     // On impose de passer par la voie sur laquelle se trouve l'arrêt
     TripNode * pNextTripNode;
@@ -4810,8 +4820,8 @@ void Vehicule::CalculVoiesPossibles
     {        
         for(int i=0; i<m_pTuyau[1]->getNbVoiesDis(); i++)
             // Cas de la voie impossible car voie réservée à un ou plusieurs autres types de véhicule
-            if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant))
-                m_bVoiesOK.push_back(false);
+                    if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant, bBypassMode))
+                        m_bVoiesOK.push_back(false);
             else if( !((VoieMicro*)m_pTuyau[1]->GetLstLanes()[i])->IsChgtVoieObligatoire(GetType()) )  
                 m_bVoiesOK.push_back(true);
             else
@@ -4857,7 +4867,7 @@ void Vehicule::CalculVoiesPossibles
                 {
                     for(int i=0; i<m_pTuyau[1]->getNbVoiesDis(); i++)
                     {
-                        if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant))
+                        if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant, bBypassMode))
                             m_bVoiesOK.push_back(false);
                         else
                             m_bVoiesOK.push_back(true); 
@@ -4918,7 +4928,7 @@ void Vehicule::CalculVoiesPossibles
                     // d'éviter des problèmes de blocage).
                     if( pCnx->IsMouvementAutorise(m_pTuyau[1]->GetLstLanes()[i], m_pNextTuyau, GetType(), &m_SousType ) )
                     {
-                        if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant))
+                        if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant, bBypassMode))
                             m_bVoiesOK.push_back(false);
                         else if( ((VoieMicro*)m_pTuyau[1]->GetLstLanes()[i])->IsChgtVoieObligatoire(GetType()) )  
                             m_bVoiesOK.push_back(false);
@@ -4933,7 +4943,7 @@ void Vehicule::CalculVoiesPossibles
             {
                 for(int i=0; i<m_pTuyau[1]->getNbVoiesDis(); i++)
                     // Cas de la voie impossible car voie réservée à un ou plusieurs autres types de véhicule
-                    if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant))
+                    if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant, bBypassMode))
                         m_bVoiesOK.push_back(false);
                     else if( !((VoieMicro*)m_pTuyau[1]->GetLstLanes()[i])->IsChgtVoieObligatoire(GetType()) )  
                         m_bVoiesOK.push_back(true);
@@ -4948,7 +4958,7 @@ void Vehicule::CalculVoiesPossibles
         {
             for(int i=0; i<m_pTuyau[1]->getNbVoiesDis(); i++)
                 // Cas de la voie impossible car voie réservée à un ou plusieurs autres types de véhicule
-                if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant))
+                if(m_pTuyau[1]->IsVoieInterdite(this->GetType(), i, dbInstant, bBypassMode))
                     m_bVoiesOK.push_back(false);
                 else if( !((VoieMicro*)m_pTuyau[1]->GetLstLanes()[i])->IsChgtVoieObligatoire(GetType()) )  
                     m_bVoiesOK.push_back(true);

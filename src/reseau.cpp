@@ -3757,8 +3757,10 @@ double Reseau::GetTimeStep(void)
 
             // Dernier type de changement de voie : pour se rabattre
 
-			// Pas de rabattement si le véhicule est sur une voie réservée
-			if ((*ItCurVeh)->GetLink(1)->IsVoieReservee((*ItCurVeh)->GetType(), (*ItCurVeh)->GetVoie(1)->GetNum(), dbInstant))
+            // Pas de rabattement si le véhicule est sur une voie réservée
+            double dbRemainingForBypass = (*ItCurVeh)->GetVoie(1)->GetLength() - (*ItCurVeh)->GetPos(1);
+            bool bBypassModeVeh = ((*ItCurVeh)->GetNextTuyau() != NULL && dbRemainingForBypass <= 200.0);
+            if ((*ItCurVeh)->GetLink(1)->IsVoieReservee((*ItCurVeh)->GetType(), (*ItCurVeh)->GetVoie(1)->GetNum(), dbInstant, bBypassModeVeh))
 				if( (*ItCurVeh)->GetVoie(1)->GetNum() > 0 )
 					if( (*ItCurVeh)->IsVoiePossible( (*ItCurVeh)->GetVoie(1)->GetNum()-1 ) )   // la voie est-elle candidate ?
 						if( (*ItCurVeh)->CalculChangementVoie( (*ItCurVeh)->GetVoie(1)->GetNum()-1, dbInstant+m_dbDiffDebutSimuData, m_pGestionsCapteur, false, true) )
@@ -6578,6 +6580,8 @@ const std::string & ssID
                 GetXmlAttributeValue(pNodeVoieReservee, "id_typesvehicules", strTmp, &loadingLogger);
                 bool bTmp = true;
                 GetXmlAttributeValue(pNodeVoieReservee, "active", bTmp, &loadingLogger);
+                bool bAllowBypass = false;
+                GetXmlAttributeValue(pNodeVoieReservee, "allow_bypass_for_exit", bAllowBypass, &loadingLogger);
                 // construction de tous les types autres que ceux de la liste pour interdiction
                 std::deque<std::string> split = SystemUtil::split(strTmp, ' ');
                 // Evolution n°20 : ajout d'un warning si un type de véhicule défini ici n'existe pas
@@ -6615,7 +6619,7 @@ const std::string & ssID
                     {
                         mapDureesVoiesReservees[num_voie-1] = dbDuree;
                     }
-                    T->AddVoieReserveeByTypeVeh(pVectTypesInterdits, mapDureesVoiesReservees[num_voie-1]-dbDuree, dbDuree, NULL, m_dbDureeSimu, num_voie-1, bTmp);
+                    T->AddVoieReserveeByTypeVeh(pVectTypesInterdits, mapDureesVoiesReservees[num_voie-1]-dbDuree, dbDuree, NULL, m_dbDureeSimu, num_voie-1, bTmp, bAllowBypass);
                     m_LstItiChangeInstants.insert(mapDureesVoiesReservees[num_voie-1]-dbDuree + GetTimeStep());
                 }
                 else
@@ -6623,14 +6627,14 @@ const std::string & ssID
                     if(plages.size() == 0)
                     {
                         // utilisation de la valeur par défaut dbDuree
-                        T->AddVoieReserveeByTypeVeh(pVectTypesInterdits, 0, dbDuree, NULL, m_dbDureeSimu, num_voie-1, bTmp);
+                        T->AddVoieReserveeByTypeVeh(pVectTypesInterdits, 0, dbDuree, NULL, m_dbDureeSimu, num_voie-1, bTmp, bAllowBypass);
                     }
                     else
                     {
                         // Ajout de la variation pour chacune des plages temporelles définies
                         for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
                         {
-                            T->AddVoieReserveeByTypeVeh(pVectTypesInterdits, 0, 0, plages[iPlage], m_dbDureeSimu, num_voie-1, bTmp);
+                            T->AddVoieReserveeByTypeVeh(pVectTypesInterdits, 0, 0, plages[iPlage], m_dbDureeSimu, num_voie-1, bTmp, bAllowBypass);
                             m_LstItiChangeInstants.insert(plages[iPlage]->m_Debut + GetTimeStep());
                         }
                     }
