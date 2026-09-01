@@ -875,73 +875,39 @@ void TuyauMacro::TrafficOutput()
     for(size_t i = 0; i < typesInterdits.size(); i++)
     {
         TypeVehicule* pTV = typesInterdits[i];
-
-        if(bActive)
+        ListOfTimeVariation<tracked_bool>& listReservee = m_mapVoiesReservees[pTV][nVoie];
+        if(listReservee.GetLstTV()->empty())
         {
-            for(int j = 0; j < getNb_voies(); j++)
-            {
-                m_mapVoiesReservees[pTV][j].SetLag(m_pReseau->GetLag());
-                boost::shared_ptr<tracked_bool> pNewBool = boost::make_shared<tracked_bool>(bActive);
-                if(j != nVoie)
-                {
-                    *pNewBool = false;
-                }
-                if(!pPlage)
-                {
-                    m_mapVoiesReservees[pTV][j].AddVariation(dbDuree, pNewBool);
-                    m_mapVoiesReservees[pTV][j].AddVariation(dbDureeSimu - dbDuree, boost::make_shared<tracked_bool>(!bActive));
-                }
-                else
-                {
-                    m_mapVoiesReservees[pTV][j].AddVariation(dbDureeSimu, boost::make_shared<tracked_bool>(!bActive));
-                    m_mapVoiesReservees[pTV][j].AddVariation(pPlage, pNewBool);
-                }
-
-                m_mapVoiesReserveesAllowBypass[pTV][j].SetLag(m_pReseau->GetLag());
-                boost::shared_ptr<tracked_bool> pNewBoolAllow = boost::make_shared<tracked_bool>(false);
-                if(j == nVoie)
-                {
-                    *pNewBoolAllow = bAllowBypass;
-                }
-                if(!pPlage)
-                {
-                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(dbDuree, pNewBoolAllow);
-                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(dbDureeSimu - dbDuree, boost::make_shared<tracked_bool>(false));
-                }
-                else
-                {
-                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(dbDureeSimu, boost::make_shared<tracked_bool>(false));
-                    m_mapVoiesReserveesAllowBypass[pTV][j].AddVariation(pPlage, pNewBoolAllow);
-                }
-            }
+            listReservee.SetLag(m_pReseau->GetLag());
+            boost::shared_ptr<tracked_bool> pDefault = boost::make_shared<tracked_bool>(false);
+            listReservee.AddVariation(dbDureeSimu, pDefault);
+        }
+        boost::shared_ptr<tracked_bool> pNewBool = boost::make_shared<tracked_bool>(bActive);
+        if(pPlage)
+        {
+            listReservee.AddVariation(pPlage, pNewBool);
         }
         else
         {
-            map<int, ListOfTimeVariation<tracked_bool> > & voiesInterditesMap = m_mapVoiesReservees[pTV];
-            ListOfTimeVariation<tracked_bool> & listVitReg = voiesInterditesMap[nVoie];
-            boost::shared_ptr<tracked_bool> pNewBool = boost::make_shared<tracked_bool>(bActive);
+            listReservee.InsertVariation(dbLag, dbLag + dbDuree, pNewBool);
+        }
+        if(bAllowBypass)
+        {
+            ListOfTimeVariation<tracked_bool>& listBypass = m_mapVoiesReserveesAllowBypass[pTV][nVoie];
+            if(listBypass.GetLstTV()->empty())
+            {
+                listBypass.SetLag(m_pReseau->GetLag());
+                boost::shared_ptr<tracked_bool> pDefaultAllow = boost::make_shared<tracked_bool>(false);
+                listBypass.AddVariation(dbDureeSimu, pDefaultAllow);
+            }
+            boost::shared_ptr<tracked_bool> pNewBoolAllow = boost::make_shared<tracked_bool>(bAllowBypass);
             if(pPlage)
             {
-                listVitReg.AddVariation(pPlage, pNewBool);
+                listBypass.AddVariation(pPlage, pNewBoolAllow);
             }
             else
             {
-                listVitReg.InsertVariation(dbLag, dbLag + dbDuree, pNewBool);
-            }
-
-            if(m_mapVoiesReserveesAllowBypass.find(pTV) != m_mapVoiesReserveesAllowBypass.end()
-               && m_mapVoiesReserveesAllowBypass[pTV].find(nVoie) != m_mapVoiesReserveesAllowBypass[pTV].end())
-            {
-                ListOfTimeVariation<tracked_bool> & listAllowBypass = m_mapVoiesReserveesAllowBypass[pTV][nVoie];
-                boost::shared_ptr<tracked_bool> pNewBoolAllow = boost::make_shared<tracked_bool>(false);
-                if(pPlage)
-                {
-                    listAllowBypass.AddVariation(pPlage, pNewBoolAllow);
-                }
-                else
-                {
-                    listAllowBypass.InsertVariation(dbLag, dbLag + dbDuree, pNewBoolAllow);
-                }
+                listBypass.InsertVariation(dbLag, dbLag + dbDuree, pNewBoolAllow);
             }
         }
     }
