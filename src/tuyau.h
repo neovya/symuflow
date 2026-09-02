@@ -198,6 +198,9 @@ protected:
 public:
     ListOfTimeVariation<VitRegDescription> m_LstVitReg;    // Liste des variantes de définition de la vitesse réglementaire sur le tronçon
     std::map<TypeVehicule*,  std::map<int, ListOfTimeVariation<tracked_bool> > >	m_mapVoiesReservees;   // Map des voies reservees par véhicule et par voie
+    // Map parallèle indiquant si, pour une variante temporelle donnée, la voie réservée
+    // autorise un contournement pour sortie (allow_bypass_for_exit)
+    std::map<TypeVehicule*,  std::map<int, ListOfTimeVariation<tracked_bool> > >	m_mapVoiesReserveesAllowBypass;
     std::map<TypeVehicule*, std::map<int, bool> >                                   m_mapVoiesInterdites;  // Map des voies interdites par véhicule et par voie
 
         // Constructeurs, destructeurs et assimilées
@@ -339,7 +342,7 @@ virtual        void            DeleteLanes() = 0;
 		bool		GetIsForbidden() const;
 
         void        AddVoieInterditeByTypeVeh(std::vector<TypeVehicule*> typesInterdits, int voie = -1);
-        void        AddVoieReserveeByTypeVeh(std::vector<TypeVehicule*> typesInterdits, double dbLag, double dbDuree, PlageTemporelle * pPlage, double dbDureeSimu, int nVoie, bool bActive = true);
+        void        AddVoieReserveeByTypeVeh(std::vector<TypeVehicule*> typesInterdits, double dbLag, double dbDuree, PlageTemporelle * pPlage, double dbDureeSimu, int nVoie, bool bActive = true, bool bAllowBypass = false);
 
         double      GetVitRegByTypeVeh(TypeVehicule *pTV, double dbInst, double dbPos, int nVoie);
         double      GetMaxVitRegByTypeVeh(TypeVehicule *pTV, double dbInst, double dbPos);
@@ -351,7 +354,7 @@ virtual        void            DeleteLanes() = 0;
         // Indique si le troncon est interdit globalement à la circulation
         bool        IsInterdit(TypeVehicule *pTV, double dbInst);
         // Indique si la voie spécifiée est interdite à la circulation du type de véhicule spécifié
-        bool        IsVoieInterdite(TypeVehicule *pTV, int nVoie, double dbInst);
+        bool        IsVoieInterdite(TypeVehicule *pTV, int nVoie, double dbInst, bool bBypassMode = false);
 
         // Indique si le troncon est interdit globalement à la circulation sur l'ensemble de la durée de simulation
         bool        IsInterdit(TypeVehicule *pTV);
@@ -360,7 +363,7 @@ virtual        void            DeleteLanes() = 0;
         bool        IsVoieInterdite(TypeVehicule *pTV, int nVoie);
 
 		// Indique si la voie spécifiée est réservée pour un type de véhicule à un moment précis
-		bool		IsVoieReservee(TypeVehicule *pTV, int nVoie, double dbInst);
+        bool		IsVoieReservee(TypeVehicule *pTV, int nVoie, double dbInst, bool bBypassMode = false);
 
         // construit une polyligne correspondant à la géométrie du tronçon, à une position transversale donnée
         std::deque<Point> GetLineString(double offset, VoieMicro * pVoie = nullptr);

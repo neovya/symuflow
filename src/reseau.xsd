@@ -1954,6 +1954,11 @@ Pour un véhicule autre qu'un VGP, la décélération est modélisée uniquement
                     <xsd:documentation>Indique si la voie réservée doit être activée ou désactivée</xsd:documentation>
                   </xsd:annotation>
                 </xsd:attribute>
+                <xsd:attribute default="false" name="allow_bypass_for_exit" type="xsd:boolean">
+                  <xsd:annotation>
+                    <xsd:documentation>Si true, les véhicules souhaitant sortir peuvent contourner la réservation sur une courte distance (configurée dans le code).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
